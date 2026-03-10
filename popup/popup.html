@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=400, initial-scale=1.0">
+  <title>ContextPrompt AI</title>
+  <link rel="stylesheet" href="../assets/design-tokens.css">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Noise texture overlay for premium feel -->
+    <div class="noise-overlay" aria-hidden="true"></div>
+
+    <!-- Header -->
+    <header class="popup-header">
+      <div class="logo">
+        <div class="logo-mark">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3l1.912 5.813a2 2 0 0 0 1.275 1.275L21 12l-5.813 1.912a2 2 0 0 0-1.275 1.275L12 21l-1.912-5.813a2 2 0 0 0-1.275-1.275L3 12l5.813-1.912a2 2 0 0 0 1.275-1.275L12 3z"/>
+          </svg>
+        </div>
+        <h1>ContextPrompt <span class="logo-ai">AI</span></h1>
+      </div>
+      <div class="header-actions">
+        <button id="sidepanel-btn" class="icon-btn" data-i18n-title="openSidePanel" title="Open Side Panel" aria-label="Open Side Panel">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/>
+          </svg>
+        </button>
+        <button id="history-btn" class="icon-btn" data-i18n-title="history" title="History" aria-label="Prompt history">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </button>
+        <button id="settings-btn" class="icon-btn" data-i18n-title="settings" title="Settings" aria-label="Settings">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content View -->
+    <main id="main-view" class="popup-main">
+      <!-- Quick Capture -->
+      <button id="capture-btn" class="capture-btn" aria-label="Capture current page">
+        <span class="capture-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+            <circle cx="12" cy="13" r="3"/>
+          </svg>
+        </span>
+        <span class="capture-text" data-i18n="capture">Capture This Page</span>
+        <span class="capture-kbd">Ctrl+Shift+C</span>
+      </button>
+
+      <!-- Template + Actions Row -->
+      <div class="toolbar-row">
+        <select id="template-select" class="template-select" aria-label="Prompt template">
+        </select>
+        <div class="toolbar-actions">
+          <button id="template-edit-btn" class="icon-btn-sm" title="Edit templates" aria-label="Edit templates">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button id="export-btn" class="icon-btn-sm" title="Export" aria-label="Export contexts">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </button>
+          <label id="import-label" class="icon-btn-sm" title="Import" aria-label="Import contexts">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <input type="file" id="import-input" accept=".json" hidden>
+          </label>
+        </div>
+      </div>
+
+      <!-- Search -->
+      <div class="search-box">
+        <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="search-input" data-i18n-placeholder="search" placeholder="Search contexts..." aria-label="Search contexts">
+      </div>
+
+      <!-- Context Section -->
+      <section class="context-section">
+        <div class="section-header">
+          <h2 data-i18n="savedContexts">Saved Contexts</h2>
+          <div class="section-actions">
+            <button id="fuse-btn" class="text-btn primary hidden" title="Fuse selected" aria-label="Fuse contexts">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2z"/></svg>
+              <span data-i18n="fuse">Fuse</span>
+            </button>
+            <button id="clear-all-btn" class="text-btn danger" data-i18n="clearAll" aria-label="Clear all">Clear All</button>
+          </div>
+        </div>
+        <p id="multi-select-hint" class="hint hidden" data-i18n="multiSelectHint">Ctrl+Click to select multiple</p>
+        <div id="context-list" class="context-list" role="list">
+          <!-- Skeleton loading -->
+          <div class="skeleton-list">
+            <div class="cp-skeleton-card"><div class="cp-skeleton cp-skeleton-title"></div><div class="cp-skeleton cp-skeleton-text"></div><div class="cp-skeleton cp-skeleton-text"></div></div>
+            <div class="cp-skeleton-card"><div class="cp-skeleton cp-skeleton-title"></div><div class="cp-skeleton cp-skeleton-text"></div><div class="cp-skeleton cp-skeleton-text"></div></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- History View -->
+    <div id="history-view" class="popup-view hidden">
+      <div class="view-header">
+        <button id="history-back-btn" class="icon-btn-back" aria-label="Back">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </button>
+        <h2 data-i18n="promptHistory">Prompt History</h2>
+        <button id="clear-history-btn" class="text-btn danger" data-i18n="clear" aria-label="Clear history">Clear</button>
+      </div>
+      <div id="history-list" class="history-list" role="list"></div>
+    </div>
+
+    <!-- Settings View -->
+    <div id="settings-view" class="popup-view hidden">
+      <div class="view-header">
+        <button id="back-btn" class="icon-btn-back" aria-label="Back">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </button>
+        <h2 data-i18n="settings">Settings</h2>
+      </div>
+      <div class="settings-content">
+        <!-- Basic Settings -->
+        <div class="setting-item">
+          <div class="setting-info"><span class="setting-label" data-i18n="enableInjection">Enable Button Injection</span><span class="setting-desc" data-i18n="enableInjectionDesc">Show Craft Prompt button</span></div>
+          <label class="toggle"><input type="checkbox" id="enable-injection" checked><span class="toggle-slider"></span></label>
+        </div>
+        <div class="setting-item">
+          <div class="setting-info"><span class="setting-label" data-i18n="theme">Theme</span></div>
+          <select id="theme-select" class="mini-select"><option value="system" data-i18n="themeSystem">System</option><option value="light" data-i18n="themeLight">Light</option><option value="dark" data-i18n="themeDark">Dark</option></select>
+        </div>
+        <div class="setting-item">
+          <div class="setting-info"><span class="setting-label" data-i18n="language">Language</span></div>
+          <select id="language-select" class="mini-select"><option value="auto" data-i18n="langAuto">Auto</option><option value="en">English</option><option value="zh">中文</option></select>
+        </div>
+
+        <!-- Capture Settings -->
+        <div class="setting-group">
+          <div class="setting-group-header">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+            <h3 class="setting-group-title" data-i18n="captureSettings">Capture Settings</h3>
+          </div>
+          <div class="setting-item">
+            <div class="setting-info"><span class="setting-label" data-i18n="captureDepth">Capture Depth</span><span class="setting-desc" data-i18n="contentExtractionAmount">Content extraction amount</span></div>
+            <select id="capture-depth" class="mini-select"><option value="light" data-i18n="depthLight">Light (15K)</option><option value="standard" selected data-i18n="depthStandard">Standard (50K)</option><option value="deep" data-i18n="depthDeep">Deep (150K)</option></select>
+          </div>
+          <div class="setting-item">
+            <div class="setting-info"><span class="setting-label" data-i18n="autoCaptureLabelText">Auto Capture</span><span class="setting-desc" data-i18n="autoCaptureDesc">Auto capture matching URLs</span></div>
+            <label class="toggle"><input type="checkbox" id="auto-capture"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="setting-item auto-capture-settings">
+            <textarea id="auto-capture-patterns" class="mini-textarea" rows="3" data-i18n-placeholder="autoCapturePatterns" placeholder="URL Patterns (one per line)"></textarea>
+          </div>
+        </div>
+
+        <!-- AI Integration -->
+        <div class="setting-group">
+          <div class="setting-group-header">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+            <h3 class="setting-group-title" data-i18n="aiIntegration">AI Integration</h3>
+          </div>
+          <div class="setting-item">
+            <div class="setting-info"><span class="setting-label" data-i18n="enableAI">Enable AI</span><span class="setting-desc" data-i18n="enableAIDesc">Connect to AI API provider</span></div>
+            <label class="toggle"><input type="checkbox" id="ai-enabled"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="setting-item ai-settings">
+            <div class="setting-info"><span class="setting-label" data-i18n="autoSummarize">Auto Summarize</span><span class="setting-desc" data-i18n="autoSummarizeDesc">AI auto-summarize after capture</span></div>
+            <label class="toggle"><input type="checkbox" id="auto-summarize" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="setting-item ai-settings">
+            <div class="setting-info"><span class="setting-label" data-i18n="apiProvider">API Provider</span></div>
+            <select id="ai-provider" class="mini-select"><option value="openai">OpenAI</option><option value="deepseek">DeepSeek</option><option value="qwen">Qwen</option><option value="custom">Custom</option></select>
+          </div>
+          <div class="setting-item ai-settings">
+            <div class="setting-info"><span class="setting-label" data-i18n="apiKey">API Key</span></div>
+            <input type="password" id="ai-api-key" class="mini-input" placeholder="sk-...">
+          </div>
+          <div class="setting-item ai-settings ai-custom-only hidden">
+            <div class="setting-info"><span class="setting-label" data-i18n="customBaseUrl">Custom Base URL</span></div>
+            <input type="text" id="ai-base-url" class="mini-input" placeholder="https://api.example.com/v1">
+          </div>
+          <div class="setting-item ai-settings">
+            <div class="setting-info"><span class="setting-label" data-i18n="model">Model</span><span class="setting-desc" data-i18n="modelDesc">Enter custom model name</span></div>
+            <input type="text" id="ai-model" class="mini-input" list="ai-model-list" placeholder="gpt-4o-mini">
+            <datalist id="ai-model-list"></datalist>
+          </div>
+          <button id="test-ai-btn" class="test-btn ai-settings" data-i18n="testConnection">Test Connection</button>
+        </div>
+
+        <!-- Privacy -->
+        <div class="privacy-info">
+          <div class="privacy-header">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <h3 data-i18n="privacy">Privacy</h3>
+          </div>
+          <ul>
+            <li data-i18n="privacyLocal">Local-first processing</li>
+            <li data-i18n="privacyOptional">AI features optional</li>
+            <li data-i18n="privacyKeys">API keys stored locally</li>
+            <li data-i18n="privacyPersist">Contexts persist across sessions</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Context Modal -->
+    <div id="edit-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-label="Edit context">
+      <div class="modal-content glass-panel">
+        <div class="modal-header">
+          <h3 data-i18n="editContext">Edit Context</h3>
+          <button id="edit-modal-close" class="modal-close-btn" aria-label="Close">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <label class="field-label" data-i18n="title">Title</label>
+          <input type="text" id="edit-title" class="field-input">
+          <label class="field-label" data-i18n="notes">Notes</label>
+          <textarea id="edit-notes" class="field-textarea" rows="3"></textarea>
+          <label class="field-label" data-i18n="tags">Tags</label>
+          <input type="text" id="edit-tags" class="field-input" data-i18n-placeholder="tagsPlaceholder" placeholder="Add tags (comma separated)">
+          <div id="tag-suggestions" class="tag-suggestions"></div>
+        </div>
+        <div class="modal-footer">
+          <button id="edit-cancel" class="btn-secondary" data-i18n="cancel">Cancel</button>
+          <button id="edit-save" class="btn-primary" data-i18n="save">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Template Editor Modal -->
+    <div id="template-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-label="Template editor">
+      <div class="modal-content glass-panel">
+        <div class="modal-header">
+          <h3 data-i18n="templateEditor">Template Editor</h3>
+          <button id="template-modal-close" class="modal-close-btn" aria-label="Close">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <label class="field-label" data-i18n="templateName">Template Name</label>
+          <input type="text" id="tmpl-name" class="field-input" placeholder="My Template">
+          <label class="field-label" data-i18n="templateContent">Template Content</label>
+          <textarea id="tmpl-content" class="field-textarea" rows="6" placeholder="{title}&#10;{summary}&#10;{query}"></textarea>
+          <p class="field-hint" data-i18n="templatePlaceholders">Available: {title} {url} {content} {summary} {selection} {query} {description} {chatSummary}</p>
+          <div id="custom-templates-list" class="custom-templates-list"></div>
+        </div>
+        <div class="modal-footer">
+          <button id="tmpl-cancel" class="btn-secondary" data-i18n="cancel">Cancel</button>
+          <button id="tmpl-save" class="btn-primary" data-i18n="save">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="popup-footer">
+      <div class="footer-badge">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <span data-i18n="localFirst">Local-First</span>
+      </div>
+      <span class="footer-divider"></span>
+      <span class="footer-version">v3.1</span>
+    </footer>
+  </div>
+  <script src="popup.js" type="module"></script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "name": "com.contextprompt.ai",
+  "description": "ContextPrompt AI Native Messaging Host for MCP protocol bridge",
+  "path": "index.js",
+  "type": "stdio",
+  "allowed_origins": [
+    "chrome-extension://__MSG_@@extension_id__/"
+  ]
+}

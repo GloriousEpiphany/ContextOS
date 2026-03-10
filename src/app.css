@@ -1,8 +1,7 @@
 @import "tailwindcss";
 
 /* ============================================================
-   ContextPrompt AI v4.0 — Design Tokens
-   Migrated from assets/design-tokens.css
+   ContextPrompt AI v4.0 — Design System
    ============================================================ */
 
 :root {
@@ -17,6 +16,13 @@
   --cp-teal-700: #0f766e;
   --cp-teal-800: #115e59;
   --cp-teal-900: #134e4a;
+
+  /* ── Accent (Indigo) ── */
+  --cp-indigo-50: #eef2ff;
+  --cp-indigo-100: #e0e7ff;
+  --cp-indigo-400: #818cf8;
+  --cp-indigo-500: #6366f1;
+  --cp-indigo-600: #4f46e5;
 
   /* ── Neutrals (Slate) ── */
   --cp-slate-50: #f8fafc;
@@ -33,9 +39,13 @@
 
   /* ── Semantic Colors ── */
   --cp-success: #10b981;
+  --cp-success-light: #d1fae5;
   --cp-warning: #f59e0b;
+  --cp-warning-light: #fef3c7;
   --cp-danger: #ef4444;
+  --cp-danger-light: #fee2e2;
   --cp-info: #3b82f6;
+  --cp-info-light: #dbeafe;
 
   /* ── Typography ── */
   --cp-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -57,20 +67,36 @@
   --radius-md: 10px;
   --radius-lg: 14px;
   --radius-xl: 18px;
+  --radius-2xl: 24px;
   --radius-full: 9999px;
 
   /* ── Shadows ── */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+  --shadow-glow-teal: 0 0 20px rgba(20, 184, 166, 0.15);
+  --shadow-glow-indigo: 0 0 20px rgba(99, 102, 241, 0.15);
+
+  /* ── Glass Effects ── */
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.18);
+  --glass-blur: 12px;
 
   /* ── Animation ── */
   --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
   --duration-fast: 150ms;
   --duration-normal: 250ms;
   --duration-slow: 400ms;
+
+  /* ── Gradients ── */
+  --gradient-primary: linear-gradient(135deg, #14b8a6 0%, #0d9488 50%, #0f766e 100%);
+  --gradient-hero: linear-gradient(135deg, #0d9488 0%, #6366f1 100%);
+  --gradient-surface: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  --gradient-card: linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(248,250,252,0.9) 100%);
 }
 
 /* ── Base Styles ── */
@@ -82,11 +108,38 @@ body {
   padding: 0;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--cp-slate-300);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--cp-slate-400);
 }
 
 /* ── Reduced motion ── */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }

@@ -64,6 +64,81 @@ export interface NodeRelation {
 export type RelationType = 'semantic' | 'url_domain' | 'tag_overlap' | 'temporal';
 
 // ----------------------------------------------------------------------------
+// Context Orchestration Types
+// ----------------------------------------------------------------------------
+
+export interface ContextPackage {
+  systemPrompt: string;
+  userContext: string;
+  knowledgeContext: string;
+  metadata: {
+    totalTokens: number;
+    model: string;
+    sections: { name: string; tokens: number }[];
+  };
+}
+
+export interface TokenBudget {
+  total: number;
+  system: number;
+  userQuery: number;
+  currentPage: number;
+  knowledgeGraph: number;
+  reserved: number;
+}
+
+// ----------------------------------------------------------------------------
+// MCP Types
+// ----------------------------------------------------------------------------
+
+export interface MCPServerConfig {
+  name: string;
+  url: string;
+  enabled: boolean;
+}
+
+export interface MCPToolDefinition {
+  name: string;
+  description: string;
+  inputSchema: Record<string, unknown>;
+}
+
+// ----------------------------------------------------------------------------
+// Workflow Types
+// ----------------------------------------------------------------------------
+
+export type WorkflowTrigger = 'manual' | 'url_pattern' | 'schedule';
+export type WorkflowStepType = 'capture' | 'summarize' | 'search_knowledge' | 'generate_prompt' | 'export';
+
+export interface WorkflowStep {
+  id: string;
+  type: WorkflowStepType;
+  label: string;
+  config: Record<string, unknown>;
+}
+
+export interface Workflow {
+  id: string;
+  name: string;
+  description: string;
+  trigger: WorkflowTrigger;
+  triggerConfig?: Record<string, unknown>;
+  steps: WorkflowStep[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WorkflowExecution {
+  workflowId: string;
+  status: 'running' | 'completed' | 'failed';
+  currentStep: number;
+  results: Record<string, unknown>[];
+  startedAt: string;
+  completedAt?: string;
+  error?: string;
+}
+
+// ----------------------------------------------------------------------------
 // Settings Types
 // ----------------------------------------------------------------------------
 
@@ -94,6 +169,10 @@ export interface AppSettings {
   localAiEnabled: boolean;
   knowledgeGraphEnabled: boolean;
   maxKnowledgeNodes: number;
+  // v4 MCP
+  mcpServers: MCPServerConfig[];
+  mcpServerEnabled: boolean;
+  mcpServerPort: number;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -113,6 +192,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   localAiEnabled: false,
   knowledgeGraphEnabled: false,
   maxKnowledgeNodes: 10000,
+  mcpServers: [],
+  mcpServerEnabled: false,
+  mcpServerPort: 19960,
 };
 
 export const AI_PROVIDER_CONFIGS: Record<AIProvider, AIProviderConfig> = {
@@ -184,7 +266,19 @@ export type MessageAction =
   | 'addToKnowledge'
   | 'getRelatedNodes'
   | 'getKnowledgeGraphData'
-  | 'getKnowledgeStats';
+  | 'getKnowledgeStats'
+  // v4 Phase 3-4
+  | 'assembleContext'
+  | 'captureBatchTabs'
+  | 'captureSelection'
+  | 'translateSelection'
+  | 'summarizeSelection'
+  | 'captureToKnowledge'
+  | 'executeWorkflow'
+  | 'getWorkflows'
+  | 'saveWorkflow'
+  | 'deleteWorkflow'
+  | 'computeEmbedding';
 
 export interface ExtensionMessage {
   action: MessageAction;

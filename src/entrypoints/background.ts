@@ -33,9 +33,14 @@ export default defineBackground(() => {
     setupContextMenus();
     await updateBadge();
     try {
-      await chrome.sidePanel.setOptions({ enabled: true, path: '/sidepanel.html' });
+      await chrome.sidePanel.setOptions({ enabled: true, path: 'sidepanel.html' });
     } catch { /* sidePanel API may not be available */ }
   });
+
+  // Allow opening side panel via action click (fallback)
+  try {
+    chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false }).catch(() => {});
+  } catch { /* ignore */ }
 
   // ==================== Context Menus ====================
 
@@ -55,6 +60,11 @@ export default defineBackground(() => {
         id: 'capture-link',
         title: chrome.i18n.getMessage('captureLinkMenu') || 'Capture link',
         contexts: ['link'],
+      });
+      chrome.contextMenus.create({
+        id: 'capture-to-knowledge',
+        title: 'Save to Knowledge Graph',
+        contexts: ['selection'],
       });
     });
   }
@@ -77,6 +87,35 @@ export default defineBackground(() => {
           url: info.linkUrl || '',
           description: `Link from: ${tab.title}`,
         });
+      } else if (info.menuItemId === 'capture-to-knowledge') {
+        // Directly add selection to knowledge graph, skipping context middle layer
+        const kg = await getKnowledgeGraph();
+        await kg.addFromContext({
+          id: Date.now().toString(),
+          timestamp: new Date().toISOString(),
+          title: tab.title || 'Selection',
+          url: tab.url || '',
+          selection: info.selectionText || '',
+          description: info.selectionText?.substring(0, 200) || '',
+          mainContent: info.selectionText || '',
+          ogData: {},
+          structuredData: {},
+          chatContent: '',
+          isPrivateLink: false,
+          platformName: '',
+          captureDepth: 'standard' as const,
+          notes: '',
+          tags: [],
+          aiSummary: '',
+        });
+        try {
+          await chrome.notifications.create({
+            type: 'basic',
+            iconUrl: chrome.runtime.getURL('/assets/icons/icon-48.png'),
+            title: 'ContextPrompt AI',
+            message: 'Saved to Knowledge Graph',
+          });
+        } catch { /* notifications may not be available */ }
       }
     } catch { /* ignore */ }
   });
@@ -127,9 +166,47 @@ export default defineBackground(() => {
           return new RegExp(pattern.replace(/\*/g, '.*')).test(tab.url!);
         } catch { return false; }
       });
-      if (matches) await captureFromTab(tab);
+      if (matches) {
+        await captureFromTab(tab);
+        try {
+          await chrome.notifications.create({
+            type: 'basic',
+            iconUrl: chrome.runtime.getURL('/assets/icons/icon-48.png'),
+            title: 'ContextPrompt AI',
+            message: `Auto-captured: ${tab.title}`,
+          });
+        } catch { /* notifications may not be available */ }
+      }
     } catch { /* ignore */ }
   });
+
+  // ==================== Batch Capture ====================
+
+  async function captureBatchTabs() {
+    const tabs = await chrome.tabs.query({ currentWindow: true });
+    const results: { url: string; success: boolean }[] = [];
+
+    for (const tab of tabs) {
+      if (!tab.id || !tab.url || tab.url.startsWith('chrome://')) continue;
+      try {
+        await captureFromTab(tab);
+        results.push({ url: tab.url, success: true });
+      } catch {
+        results.push({ url: tab.url, success: false });
+      }
+    }
+
+    try {
+      await chrome.notifications.create({
+        type: 'basic',
+        iconUrl: chrome.runtime.getURL('/assets/icons/icon-48.png'),
+        title: 'ContextPrompt AI',
+        message: `Batch captured ${results.filter((r) => r.success).length}/${results.length} tabs`,
+      });
+    } catch { /* ignore */ }
+
+    return { success: true, results };
+  }
 
   // ==================== Message Handler ====================
 
@@ -192,8 +269,12 @@ export default defineBackground(() => {
         // Side Panel
         case 'openSidePanel':
           try {
-            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-            if (tab?.windowId) await chrome.sidePanel.open({ windowId: tab.windowId });
+            // Ensure side panel options are set before opening
+            await chrome.sidePanel.setOptions({ enabled: true, path: 'sidepanel.html' });
+            const [spTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            if (spTab?.windowId) {
+              await chrome.sidePanel.open({ windowId: spTab.windowId });
+            }
             return { success: true };
           } catch (e) {
             return { success: false, error: (e as Error).message };
@@ -205,6 +286,90 @@ export default defineBackground(() => {
         case 'getRelatedNodes': return await getRelatedNodesAction(data);
         case 'getKnowledgeGraphData': return await getKnowledgeGraphData();
         case 'getKnowledgeStats': return await getKnowledgeStats();
+
+        // v4 Phase 3: Capture & Orchestration
+        case 'captureSelection':
+        case 'captureToKnowledge': {
+          const kg = await getKnowledgeGraph();
+          const node = await kg.addFromContext({
+            id: Date.now().toString(),
+            timestamp: new Date().toISOString(),
+            title: data.title || 'Selection',
+            url: data.url || '',
+            selection: data.selection || '',
+            description: data.description || '',
+            mainContent: data.mainContent || data.selection || '',
+            ogData: data.ogData || {},
+            structuredData: data.structuredData || {},
+            chatContent: data.chatContent || '',
+            isPrivateLink: false,
+            platformName: '',
+            captureDepth: 'standard' as const,
+            notes: '',
+            tags: data.tags || [],
+            aiSummary: '',
+          });
+          return { success: true, node };
+        }
+
+        case 'summarizeSelection': {
+          const router = await getAIRouter();
+          const { detectLanguage } = await import('../lib/nlp-engine');
+          const content = data.content || '';
+          const lang = detectLanguage(content);
+          const { result } = await router.summarize(content, { language: lang, maxLength: 300 });
+          return { success: true, summary: result };
+        }
+
+        case 'translateSelection': {
+          const router = await getAIRouter();
+          const { detectLanguage: detect } = await import('../lib/nlp-engine');
+          const text = data.content || '';
+          const sourceLang = detect(text);
+          const targetLang = sourceLang === 'zh' ? 'English' : '中文';
+          try {
+            const { result: translated } = await router.summarize(
+              `Translate the following text to ${targetLang}:\n\n${text}`,
+              { language: sourceLang === 'zh' ? 'en' : 'zh', maxLength: text.length * 2 },
+            );
+            return { success: true, result: translated };
+          } catch (err) {
+            return { success: false, error: (err as Error).message };
+          }
+        }
+
+        case 'captureBatchTabs': return await captureBatchTabs();
+
+        case 'assembleContext': {
+          const { contextOrchestrator } = await import('../lib/context/orchestrator');
+          const pkg = await contextOrchestrator.assembleContext(
+            data.query || '',
+            { model: data.model || 'gpt-4o', currentPage: data.currentPage || null },
+          );
+          return { success: true, ...pkg };
+        }
+
+        // v4 Phase 4: Workflows
+        case 'getWorkflows': return await getWorkflowsAction();
+        case 'saveWorkflow': return await saveWorkflowAction(data);
+        case 'deleteWorkflow': return await deleteWorkflowAction(data.id);
+        case 'executeWorkflow': return await executeWorkflowAction(data);
+
+        // v4: Offscreen embedding
+        case 'computeEmbedding': {
+          // Forward to offscreen document if available, otherwise compute directly
+          try {
+            await ensureOffscreenDocument();
+            return await chrome.runtime.sendMessage({
+              action: 'computeEmbedding',
+              data: { text: data.text },
+            });
+          } catch {
+            const { generateEmbedding } = await import('../lib/ai/embeddings');
+            const vector = await generateEmbedding(data.text || '');
+            return { success: true, vector: Array.from(vector) };
+          }
+        }
 
         default: return { success: false, error: 'Unknown action' };
       }
@@ -389,6 +554,9 @@ export default defineBackground(() => {
     localAiEnabled: true,
     knowledgeGraphEnabled: true,
     maxKnowledgeNodes: 5000,
+    mcpServers: [],
+    mcpServerEnabled: false,
+    mcpServerPort: 19960,
   };
 
   async function getSettings() {
@@ -404,6 +572,15 @@ export default defineBackground(() => {
       const merged = { ...current, ...newSettings };
       await setStorageData('settings', merged);
       if (_aiRouter) _aiRouter.updateCloudSettings(merged);
+
+      // Reconnect native messaging if MCP setting changed
+      if (merged.mcpServerEnabled && !_nativePort) {
+        setupNativeMessaging().catch(() => {});
+      } else if (!merged.mcpServerEnabled && _nativePort) {
+        _nativePort.disconnect();
+        _nativePort = null;
+      }
+
       return { success: true, settings: merged };
     } catch (error) {
       return { success: false, error: (error as Error).message };
@@ -536,17 +713,49 @@ export default defineBackground(() => {
     const settings = await getSettings();
     const templates = (await getStorageData('customTemplates')) || [];
     const history = (await getStorageData('promptHistory')) || [];
-    return {
-      success: true,
-      data: {
-        version: '4.0.0',
-        exportedAt: new Date().toISOString(),
-        contexts,
-        settings,
-        customTemplates: templates,
-        promptHistory: history,
-      },
-    };
+
+    // Export knowledge graph data
+    let knowledgeNodes: any[] = [];
+    let knowledgeRelations: any[] = [];
+    try {
+      const { db } = await import('../lib/storage/db');
+      knowledgeNodes = await db.knowledgeNodes.toArray();
+      knowledgeRelations = await db.relations.toArray();
+
+      // Serialize Float32Array embeddings to plain arrays for JSON export
+      const embeddings = await db.embeddings.toArray();
+      const serializedEmbeddings = embeddings.map((e: any) => ({
+        ...e,
+        vector: e.vector instanceof Float32Array ? Array.from(e.vector) : e.vector,
+      }));
+
+      return {
+        success: true,
+        data: {
+          version: '4.0.0',
+          exportedAt: new Date().toISOString(),
+          contexts,
+          settings,
+          customTemplates: templates,
+          promptHistory: history,
+          knowledgeNodes,
+          knowledgeRelations,
+          embeddings: serializedEmbeddings,
+        },
+      };
+    } catch {
+      return {
+        success: true,
+        data: {
+          version: '4.0.0',
+          exportedAt: new Date().toISOString(),
+          contexts,
+          settings,
+          customTemplates: templates,
+          promptHistory: history,
+        },
+      };
+    }
   }
 
   async function importData(data: any) {
@@ -573,6 +782,35 @@ export default defineBackground(() => {
       const newHistory = data.promptHistory.filter((h: any) => !existingIds.has(h.id));
       await setStorageData('promptHistory', [...newHistory, ...existing].slice(0, MAX_HISTORY));
     }
+
+    // Import knowledge graph data
+    if (Array.isArray(data.knowledgeNodes) && data.knowledgeNodes.length > 0) {
+      try {
+        const { db } = await import('../lib/storage/db');
+        await db.knowledgeNodes.bulkPut(data.knowledgeNodes);
+
+        if (Array.isArray(data.knowledgeRelations)) {
+          await db.relations.bulkPut(data.knowledgeRelations);
+        }
+
+        // Rebuild embeddings from serialized arrays
+        if (Array.isArray(data.embeddings)) {
+          for (const emb of data.embeddings) {
+            const vector = emb.vector instanceof Float32Array
+              ? emb.vector
+              : new Float32Array(emb.vector);
+            await db.embeddings.put({ ...emb, vector });
+          }
+        }
+
+        // Rebuild search index
+        const { hybridSearch } = await import('../lib/storage/search');
+        await hybridSearch.rebuildIndex();
+      } catch {
+        // Ignore knowledge import errors
+      }
+    }
+
     await updateBadge();
     return { success: true, imported };
   }
@@ -646,6 +884,184 @@ export default defineBackground(() => {
       return { success: false, error: (error as Error).message };
     }
   }
+
+  // ==================== Workflow Actions ====================
+
+  async function getWorkflowsAction() {
+    const { workflowEngine } = await import('../lib/workflow/engine');
+    const { WORKFLOW_TEMPLATES } = await import('../lib/workflow/templates');
+
+    // Initialize with templates if empty
+    if (workflowEngine.getWorkflows().length === 0) {
+      for (const tpl of WORKFLOW_TEMPLATES) {
+        workflowEngine.addWorkflow(tpl);
+      }
+      // Load custom workflows from storage
+      const custom = (await getStorageData('customWorkflows')) || [];
+      for (const wf of custom) {
+        workflowEngine.addWorkflow(wf);
+      }
+    }
+
+    return { success: true, workflows: workflowEngine.getWorkflows() };
+  }
+
+  async function saveWorkflowAction(data: any) {
+    const { workflowEngine } = await import('../lib/workflow/engine');
+    const workflow = {
+      ...data,
+      id: data.id || 'custom_' + Date.now(),
+      createdAt: data.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    workflowEngine.addWorkflow(workflow);
+
+    // Persist custom workflows
+    const all = workflowEngine.getWorkflows().filter((w: any) => w.id.startsWith('custom_'));
+    await setStorageData('customWorkflows', all);
+
+    return { success: true, workflow };
+  }
+
+  async function deleteWorkflowAction(id: string) {
+    const { workflowEngine } = await import('../lib/workflow/engine');
+    workflowEngine.removeWorkflow(id);
+
+    const all = workflowEngine.getWorkflows().filter((w: any) => w.id.startsWith('custom_'));
+    await setStorageData('customWorkflows', all);
+
+    return { success: true };
+  }
+
+  async function executeWorkflowAction(data: any) {
+    const { workflowEngine } = await import('../lib/workflow/engine');
+
+    // Ensure workflows are loaded
+    if (workflowEngine.getWorkflows().length === 0) {
+      await getWorkflowsAction();
+    }
+
+    const workflow = workflowEngine.getWorkflow(data.workflowId);
+    if (!workflow) return { success: false, error: 'Workflow not found' };
+
+    const execution = await workflowEngine.execute(workflow, data.context || {});
+    return { success: true, ...execution };
+  }
+
+  // ==================== Offscreen Document ====================
+
+  let offscreenCreated = false;
+
+  async function ensureOffscreenDocument() {
+    if (offscreenCreated) return;
+    try {
+      await (chrome.offscreen as any).createDocument({
+        url: chrome.runtime.getURL('/offscreen.html'),
+        reasons: ['WORKERS'],
+        justification: 'Run Transformers.js embedding pipeline',
+      });
+      offscreenCreated = true;
+    } catch {
+      // Already exists or not supported
+      offscreenCreated = true;
+    }
+  }
+
+  // ==================== MCP Native Messaging ====================
+
+  let _nativePort: chrome.runtime.Port | null = null;
+
+  async function setupNativeMessaging() {
+    // Only connect if MCP Server is enabled in settings
+    const settings = await getSettings();
+    if (!settings.mcpServerEnabled) return;
+
+    try {
+      _nativePort = chrome.runtime.connectNative('com.contextprompt.ai');
+
+      _nativePort.onMessage.addListener(async (message: any) => {
+        if (message.type === 'mcp_request' && message.payload) {
+          const response = await handleMCPRequest(message.payload);
+          _nativePort?.postMessage({ ...response, _nativeId: message._nativeId });
+        }
+      });
+
+      _nativePort.onDisconnect.addListener(() => {
+        // Silence chrome.runtime.lastError to prevent unchecked error
+        const _err = chrome.runtime.lastError;
+        _nativePort = null;
+      });
+    } catch {
+      // Native messaging host not installed — that's OK
+      _nativePort = null;
+    }
+  }
+
+  async function handleMCPRequest(jsonRpc: any) {
+    const { MCP_METHODS, createSuccessResponse, createErrorResponse, JSONRPC_ERRORS, SERVER_INFO } =
+      await import('../lib/mcp/protocol');
+    const { MCP_TOOLS, createToolHandlers } = await import('../lib/mcp/server-tools');
+
+    const { id, method, params } = jsonRpc;
+
+    if (method === MCP_METHODS.INITIALIZE) {
+      return createSuccessResponse(id, {
+        protocolVersion: SERVER_INFO.protocolVersion,
+        serverInfo: SERVER_INFO,
+        capabilities: { tools: {} },
+      });
+    }
+
+    if (method === MCP_METHODS.TOOLS_LIST) {
+      return createSuccessResponse(id, { tools: MCP_TOOLS });
+    }
+
+    if (method === MCP_METHODS.TOOLS_CALL) {
+      const kg = await getKnowledgeGraph();
+      const { contextOrchestrator } = await import('../lib/context/orchestrator');
+      const { db } = await import('../lib/storage/db');
+
+      const handlers = createToolHandlers({
+        searchKnowledge: async (query) => {
+          const nodes = await kg.searchNodes(query);
+          return nodes;
+        },
+        assembleContext: async (query, model) => {
+          return contextOrchestrator.assembleContext(query, { model });
+        },
+        captureCurrentTab: async () => {
+          const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+          if (!tab) return { success: false, error: 'No active tab' };
+          await captureFromTab(tab);
+          return { success: true };
+        },
+        listKnowledgeNodes: async (limit) => {
+          return db.knowledgeNodes.orderBy('createdAt').reverse().limit(limit).toArray();
+        },
+        getStats: async () => {
+          return kg.getStats();
+        },
+      });
+
+      const toolName = params?.name as string;
+      const handler = handlers[toolName];
+      if (!handler) {
+        return createErrorResponse(id, JSONRPC_ERRORS.METHOD_NOT_FOUND, `Unknown tool: ${toolName}`);
+      }
+
+      try {
+        const result = await handler((params?.arguments || {}) as Record<string, unknown>);
+        return createSuccessResponse(id, result);
+      } catch (err) {
+        return createErrorResponse(id, JSONRPC_ERRORS.INTERNAL_ERROR, (err as Error).message);
+      }
+    }
+
+    return createErrorResponse(id, JSONRPC_ERRORS.METHOD_NOT_FOUND, `Unknown method: ${method}`);
+  }
+
+  // Try to set up native messaging on startup (non-blocking, only if enabled)
+  setupNativeMessaging().catch(() => {});
 
   // ==================== Badge ====================
 

@@ -8,6 +8,8 @@ declare module "wxt/browser" {
     | "/_locales/zh/messages.json"
     | "/background.js"
     | "/content-scripts/capture.js"
+    | "/content-scripts/selection-toolbar.js"
+    | "/offscreen.html"
     | "/onboarding.html"
     | "/popup.html"
     | "/sidepanel.html"

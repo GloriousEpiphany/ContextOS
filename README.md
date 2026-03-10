@@ -1,216 +1,264 @@
-# ContextPrompt AI
+# ContextPrompt AI v4.0
 
 <p align="center">
   <img src="promo/contextprompt-ai.png" alt="ContextPrompt AI" width="440">
 </p>
 
-✨ **智能 AI 提示词生成 Chrome 扩展** — 捕获网页上下文，生成精准 AI 提示词，支持 AI 智能摘要、提示词质量分析、Side Panel 全功能面板。
+**智能知识管理与 AI 上下文编排 Chrome 扩展** — 捕获网页内容，构建个人知识图谱，通过语义搜索与 MCP 协议将知识无缝注入任何 AI 对话。
+
+[English Documentation](./README_EN.md)
 
 ---
 
-## ✨ 功能特性
+## 功能概览
 
-### 核心功能
-- 📸 **一键捕获上下文** — 保存页面标题、URL、选中文本、元数据和主要内容
-- ✨ **智能提示词生成** — 使用模板生成上下文感知的提示词，支持预览和编辑
-- 🤖 **多平台支持** — 适配 ChatGPT、Claude、Gemini、通义千问、豆包
-- 🔒 **隐私优先** — 本地 NLP 处理，可选 AI 增强
-- 🌐 **国际化** — 完整的中英文双语支持（i18n）
+### 核心能力
 
-### v3.0 新功能
-- 🧠 **AI 智能摘要** — 可选接入 OpenAI、DeepSeek、Anthropic、通义千问等 API，捕获后自动摘要
-- 📊 **提示词质量雷达图** — Canvas 2D 绘制，分析清晰度、具体性、完整性、总分
-- 📚 **提示词库** — 预置代码审查、内容摘要、翻译、研究分析、写作助手 5 大分类
-- 🏷️ **标签系统** — 手动添加标签 + NLP 自动标签建议
-- 🔍 **搜索过滤** — 300ms 防抖，按标题、URL、内容、标签匹配
-- ✏️ **上下文编辑** — 编辑标题、备注、标签
-- 📋 **模板编辑器** — 自定义模板 CRUD，支持占位符参考
-- 📤 **导出/导入** — JSON 格式导出导入，合并去重
-- 📜 **提示词历史** — 最多 100 条历史记录，支持收藏
-- ⭐ **提示词收藏** — 快速访问收藏的提示词
-- 🖥️ **Side Panel** — 完整功能侧边栏（上下文管理、提示词库、历史、质量分析）
-- 👁️ **提示词预览面板** — 浮动预览、编辑、模板切换、确认插入
-- ⌨️ **键盘快捷键** — `Ctrl+Shift+C` 捕获页面，`Ctrl+Shift+P` 生成提示词
-- 🖱️ **右键菜单** — 捕获页面、捕获选中文本、捕获链接
-- 📡 **自动捕获** — 监听页面加载，按 URL 模式自动捕获
-- 🔢 **Badge 计数** — 扩展图标显示已保存上下文数量
-- 💾 **持久化存储** — 上下文存储在 local storage，关闭浏览器不丢失
-- 🎨 **艺术级 UI** — 设计系统、毛玻璃效果、流畅动画、骨架屏、SVG 空状态插图
-- ♿ **无障碍** — ARIA 标签、键盘焦点管理、prefers-reduced-motion 支持
-- 🎓 **新用户引导** — 3 步引导流程
+- **知识图谱** — 自动构建带有语义关系、标签重叠、域名关联的知识网络，D3 力导向图可视化
+- **混合搜索** — 向量嵌入（all-MiniLM-L6-v2, 384 维）+ BM25 关键词搜索，RRF 融合排序
+- **三级 AI 路由** — Chrome Gemini Nano（本地） → 云端 API（OpenAI/Anthropic/DeepSeek/Qwen） → 规则 NLP 回退
+- **上下文编排** — 自动组装知识图谱 + 当前页面 + 用户查询为结构化上下文包，Token 预算自适应
+- **选中文本工具栏** — 选中文本后浮现操作栏：保存到知识库 / AI 摘要 / 翻译 / 复制为 Markdown
+- **MCP 协议** — 通过 Native Messaging Host 暴露 5 个 MCP Tools，可被 Claude Desktop / Cursor 等调用
+- **工作流引擎** — 预设学术研究、竞品分析、代码审查等多步工作流，一键执行
 
----
+### 智能捕获
 
-## 🤖 支持的 AI 平台
+- 一键捕获页面（标题、URL、主要内容、元数据、JSON-LD）
+- 右键菜单直接存入知识图谱
+- 批量捕获当前窗口所有标签页
+- AI 聊天记录提取（ChatGPT、Claude、Gemini、DeepSeek 等 10+ 平台）
+- URL 模式自动捕获 + 通知确认
+- 键盘快捷键 `Ctrl+Shift+C` 捕获 / `Ctrl+Shift+P` 生成提示词
 
-| 平台 | 地址 | 私有链接检测 |
-|------|------|:----------:|
-| ChatGPT | chat.openai.com / chatgpt.com | ✅ |
-| Claude | claude.ai | ✅ |
-| Gemini | gemini.google.com | ✅ |
-| 通义千问 | chat.qwen.ai | ✅ |
-| 豆包 | www.doubao.com | ✅ |
+### AI 集成
 
----
+| 提供商 | 模型 | 用途 |
+|--------|------|------|
+| OpenAI | gpt-4o, gpt-4o-mini | 摘要、翻译、质量分析 |
+| Anthropic | Claude Sonnet 4, Claude Haiku 4 | 摘要、上下文融合 |
+| DeepSeek | deepseek-chat, deepseek-reasoner | 摘要、推理 |
+| 通义千问 | qwen-turbo, qwen-plus, qwen-max | 摘要、翻译 |
+| Chrome Gemini Nano | 内置 | 本地离线摘要（英/西/日） |
+| 自定义 | 任意 OpenAI 兼容 API | 自托管模型 |
 
-## 🚀 安装
+### MCP 生态
 
-### 开发者模式加载
+通过 Native Messaging Host（Node.js）将扩展能力暴露为 MCP 工具：
 
-1. 下载或克隆本仓库
-2. 打开 `assets/icons/generate-icons.html` 生成图标（首次安装）
-3. 访问 `chrome://extensions`
-4. 开启「开发者模式」
-5. 点击「加载已解压的扩展程序」选择 `contextprompt-ai` 文件夹
-
----
-
-## 📖 使用方法
-
-### 基础用法
-
-1. **捕获上下文**: 访问任意网页 → 点击扩展图标 → 点击「捕获当前页面」
-2. **生成提示词**: 打开支持的 AI 平台 → 点击「✨ Craft Prompt」按钮 → 预览/编辑 → 插入
-3. **自定义模板**: 点击模板编辑按钮，创建自定义提示词模板
-
-### 快捷操作
-
-| 操作 | 方式 |
+| Tool | 说明 |
 |------|------|
-| 捕获当前页面 | `Ctrl+Shift+C` / 右键菜单 / 扩展弹窗 |
-| 生成并插入提示词 | `Ctrl+Shift+P` / 页面内按钮 |
-| 捕获选中文本 | 右键菜单 → 「捕获选中文本」 |
-| 捕获链接 | 右键菜单 → 「捕获链接」 |
-| 搜索上下文 | 弹窗搜索框 / Side Panel 搜索 |
-| 多选融合 | `Ctrl+点击` 选择多个上下文 → 点击「融合」 |
-
-### AI 智能摘要（可选）
-
-1. 打开扩展设置 → AI 集成
-2. 启用「AI 智能摘要」
-3. 选择 API 提供商（OpenAI / DeepSeek / Anthropic / 通义千问 / 自定义）
-4. 输入 API Key
-5. 可选：自定义 Base URL 和模型名称
-
-### 捕获深度设置
-
-| 模式 | 聊天消息长度 | 聊天消息数量 | 页面内容上限 | 适用场景 |
-|------|---------|---------|---------|---------|
-| 💨 轻量 | 500 字符/条 | 10 条 | 15,000 字符 | 节省 Token |
-| ⚖️ 标准 | 1,500 字符/条 | 20 条 | 50,000 字符 | 日常使用 |
-| 🔬 深度 | 3,000 字符/条 | 30 条 | 150,000 字符 | 完整内容 |
-
-### Side Panel
-
-在 Chrome 工具栏点击扩展图标旁的侧边栏按钮，打开 Side Panel：
-- **Contexts** — 浏览、搜索、管理所有已保存的上下文
-- **Library** — 浏览预置提示词库，点击即可复制
-- **History** — 查看提示词生成历史，支持收藏
-- **Quality** — 粘贴提示词，AI 分析质量并生成雷达图
+| `search_knowledge` | 语义搜索知识图谱 |
+| `get_context` | 组装上下文包（指定目标模型） |
+| `capture_page` | 捕获当前浏览器标签页 |
+| `list_knowledge` | 列出最近知识节点 |
+| `get_stats` | 知识图谱统计信息 |
 
 ---
 
-## 🗂️ 项目结构
+## 快速开始
+
+### 环境要求
+
+- Node.js >= 18
+- Chrome >= 120（推荐 138+ 以支持 Gemini Nano）
+- npm 或 pnpm
+
+### 安装与开发
+
+```bash
+# 克隆仓库
+git clone https://github.com/GloriousEpiphany/ContextOS.git contextprompt-ai
+cd contextprompt-ai
+
+# 安装依赖
+npm install
+
+# 开发模式（热更新）
+npm run dev
+
+# 生产构建
+npm run build
+
+# 类型检查
+npm run check
+
+# 打包 zip
+npm run zip
+```
+
+### 加载到 Chrome
+
+1. 运行 `npm run build`
+2. 打开 `chrome://extensions`
+3. 开启「开发者模式」
+4. 点击「加载已解压的扩展程序」
+5. 选择 `.output/chrome-mv3` 目录
+
+### 启用 MCP Server（可选）
+
+```bash
+# 注册 Native Messaging Host
+# Windows:
+cd native-host && install.bat
+
+# macOS / Linux:
+cd native-host && chmod +x install.sh && ./install.sh
+
+# MCP Server 默认监听 http://127.0.0.1:19960
+# 用 curl 测试：
+curl -X POST http://127.0.0.1:19960 \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
+```
+
+---
+
+## 技术栈
+
+| 层面 | 技术 |
+|------|------|
+| 框架 | TypeScript + Svelte 5 + WXT (Vite) |
+| 存储 | Dexie.js (IndexedDB) + Chrome Storage API |
+| 搜索 | MiniSearch (BM25) + Transformers.js (向量嵌入, CDN 动态加载) |
+| 可视化 | D3.js 力导向图 |
+| 样式 | Tailwind CSS 4 |
+| 协议 | MCP (JSON-RPC 2.0) + Chrome Native Messaging |
+| AI | 三级路由：Gemini Nano → Cloud APIs → Rule NLP |
+
+---
+
+## 项目结构
 
 ```
 contextprompt-ai/
-├── manifest.json                 # 扩展配置（v3, i18n, 权限, 快捷键, Side Panel）
-├── service-worker.js             # 后台服务（消息中枢, AI API, 上下文管理, 历史, 标签）
-├── _locales/
-│   ├── en/messages.json          # 英文语言包
-│   └── zh/messages.json          # 中文语言包
-├── content-scripts/
-│   ├── capture.js                # Readability 算法深度内容提取
-│   └── injector.js               # AI 平台按钮注入 + 预览面板
-├── lib/
-│   ├── ai-service.js             # AI API 服务封装（OpenAI/DeepSeek/Anthropic/Qwen/自定义）
-│   ├── nlp-engine.js             # 本地 NLP 处理（摘要, 关键词, 语言检测）
-│   ├── prompt-library.js         # 预置提示词库（5 大分类）
-│   └── i18n-helper.js            # 国际化辅助工具
-├── popup/
-│   ├── popup.html                # 弹窗 UI（搜索, 编辑, 导出, 模板, 历史）
-│   ├── popup.js                  # 弹窗逻辑
-│   └── popup.css                 # 弹窗样式（设计系统, 动画, 毛玻璃）
-├── sidepanel/
-│   ├── sidepanel.html            # Side Panel UI
-│   ├── sidepanel.js              # Side Panel 逻辑（雷达图, 提示词库, 历史）
-│   └── sidepanel.css             # Side Panel 样式
-├── onboarding/
-│   ├── onboarding.html           # 新用户引导页
-│   ├── onboarding.js             # 引导逻辑
-│   └── onboarding.css            # 引导样式
-├── assets/
-│   ├── design-tokens.css         # 设计系统（颜色, 间距, 圆角, 阴影, 动画, 骨架屏）
-│   ├── styles.css                # 注入按钮 + 预览面板样式
-│   ├── icons/                    # 扩展图标
-│   └── illustrations/            # SVG 空状态插图
-└── privacy-policy.md             # 隐私政策
+├── src/
+│   ├── types/index.ts                    # 全局类型定义
+│   ├── entrypoints/
+│   │   ├── background.ts                # Service Worker（消息中枢）
+│   │   ├── capture.content.ts           # 页面捕获 Content Script
+│   │   ├── selection-toolbar.content.ts  # 选中文本操作栏
+│   │   ├── popup/                       # 弹窗 UI (Svelte)
+│   │   ├── sidepanel/                   # 侧边栏 UI (Svelte)
+│   │   ├── onboarding/                  # 新用户引导
+│   │   └── offscreen/                   # Offscreen Document（嵌入计算）
+│   └── lib/
+│       ├── ai/
+│       │   ├── router.ts               # 三级 AI 路由引擎
+│       │   ├── cloud-engine.ts          # 多提供商云端 AI
+│       │   ├── local-engine.ts          # Chrome Gemini Nano
+│       │   └── embeddings.ts            # Transformers.js 向量嵌入
+│       ├── storage/
+│       │   ├── db.ts                    # Dexie 数据库 Schema
+│       │   ├── vector-store.ts          # 向量存储与余弦相似度搜索
+│       │   ├── knowledge-graph.ts       # 知识图谱 CRUD + 关系发现
+│       │   └── search.ts               # 混合搜索（RRF 融合）
+│       ├── context/
+│       │   ├── budget.ts               # Token 预算管理
+│       │   ├── compressor.ts           # 上下文压缩
+│       │   └── orchestrator.ts         # 上下文编排器
+│       ├── mcp/
+│       │   ├── protocol.ts             # MCP 协议类型
+│       │   ├── server-tools.ts         # MCP Server Tools 定义
+│       │   └── client.ts              # MCP Client（调用外部 Server）
+│       ├── workflow/
+│       │   ├── engine.ts              # 工作流执行引擎
+│       │   └── templates.ts           # 预设工作流模板
+│       ├── components/
+│       │   ├── KnowledgeGraph.svelte  # D3 知识图谱可视化
+│       │   └── WorkflowPanel.svelte   # 工作流管理面板
+│       ├── nlp-engine.ts              # 规则 NLP（摘要、关键词、语言检测）
+│       └── prompt/templates.ts        # 提示词模板
+├── native-host/
+│   ├── index.js                       # Native Messaging Host (MCP 桥接)
+│   ├── manifest.json                  # Host 清单
+│   ├── install.bat                    # Windows 注册脚本
+│   └── install.sh                     # macOS/Linux 注册脚本
+├── wxt.config.ts                      # WXT 构建配置
+├── package.json
+└── tsconfig.json
 ```
 
 ---
 
-## 🔒 隐私保护
+## 使用方法
+
+### 基础用法
+
+1. **捕获上下文** — 访问网页 → 点击扩展图标 → 「捕获当前页面」
+2. **选中文本操作** — 选中网页文字 → 浮动工具栏自动出现 → 保存/摘要/翻译/复制
+3. **知识搜索** — 侧边栏搜索框输入关键词，语义+关键词混合搜索
+4. **上下文编排** — 在 AI 对话中自动组装知识图谱上下文
+5. **执行工作流** — 侧边栏工作流面板 → 选择预设流程 → 一键执行
+
+### 快捷键
+
+| 操作 | 快捷键 |
+|------|--------|
+| 捕获当前页面 | `Ctrl+Shift+C` / `Cmd+Shift+C` |
+| 生成提示词 | `Ctrl+Shift+P` / `Cmd+Shift+P` |
+
+### AI 配置
+
+1. 点击扩展图标 → 设置
+2. 启用 AI → 选择提供商 → 输入 API Key
+3. 可选：启用自动摘要、配置 MCP Server
+
+---
+
+## 隐私保护
 
 ### 本地模式（默认）
-- ✅ 所有处理在浏览器本地完成
-- ✅ 无外部网络请求
-- ✅ 上下文持久化存储在 `chrome.storage.local`
-- ✅ 无分析、追踪或数据收集
+- 所有数据存储在浏览器本地（IndexedDB + Chrome Storage）
+- 向量嵌入在浏览器内计算（Transformers.js，首次使用时从 CDN 下载模型，后续从缓存加载）
+- 除嵌入模型下载外，无其他外部网络请求、无数据收集
 
 ### AI 增强模式（可选）
-- 🔐 仅在启用 AI 摘要时发送内容到 AI API
-- 🔐 API Key 安全存储在本地
-- 🔐 可随时关闭 AI 功能回到纯本地模式
+- 仅在启用时发送内容到所选 AI API
+- API Key 加密存储在本地
+- 可随时关闭回到纯本地模式
 
-详见 [privacy-policy.md](privacy-policy.md)
+### MCP Server（可选）
+- 仅监听 `127.0.0.1`（本地回环），不暴露到网络
+- 需手动安装 Native Messaging Host
 
 ---
 
-## ⚙️ 配置说明
+## 发布渠道
 
-### AI API 配置
+### Chrome Web Store
+1. 运行 `npm run zip` 生成 `.zip` 包
+2. 访问 [Chrome 开发者控制台](https://chrome.google.com/webstore/devconsole)
+3. 上传 zip 包，填写商店信息，提交审核
 
-| 提供商 | Base URL | 推荐模型 |
-|-------|----------|---------|
-| OpenAI | https://api.openai.com/v1 | gpt-4o-mini |
-| DeepSeek | https://api.deepseek.com/v1 | deepseek-chat |
-| Anthropic | https://api.anthropic.com/v1 | claude-3-haiku-20240307 |
-| 通义千问 | https://dashscope.aliyuncs.com/compatible-mode/v1 | qwen-turbo |
-| 自定义 | 用户自定义 | 用户自定义 |
+### Edge Add-ons
+WXT 支持 Edge 构建：`npx wxt build --browser edge`，然后提交到 [Edge 开发者中心](https://partner.microsoft.com/dashboard/microsoftedge/)
 
-### 权限说明
+### 手动分发
+将 `.output/chrome-mv3` 目录或 `.zip` 文件直接分发给用户，通过开发者模式加载。
 
-| 权限 | 用途 |
+---
+
+## 构建脚本
+
+| 命令 | 说明 |
 |------|------|
-| `storage` | 持久化存储上下文、设置、模板、历史 |
-| `activeTab` | 捕获当前标签页内容 |
-| `scripting` | 注入内容脚本到页面 |
-| `contextMenus` | 右键菜单（捕获页面/选中文本/链接） |
-| `sidePanel` | Side Panel 侧边栏功能 |
+| `npm run dev` | 开发模式（热更新 + 自动重载） |
+| `npm run build` | 生产构建到 `.output/chrome-mv3` |
+| `npm run check` | TypeScript + Svelte 类型检查 |
+| `npm run zip` | 打包为可发布的 `.zip` |
 
 ---
 
-## 🛠️ 开发
+## License
 
-```bash
-# 无需构建！纯原生 JavaScript + ES Modules
-# 直接在 Chrome 开发者模式加载扩展文件夹即可
-```
+本项目基于 [GNU Affero General Public License v3.0 (AGPL-3.0)](./LICENSE) 开源。
 
-### 技术栈
-- Chrome Extension Manifest V3
-- ES Modules（service-worker, popup, sidepanel）
-- Canvas 2D（雷达图）
-- CSS Custom Properties（设计系统）
-- `backdrop-filter`（毛玻璃效果）
-- `chrome.storage.local`（持久化存储）
+简要说明：
+- 你可以自由使用、修改和分发本软件
+- 如果你修改后通过网络提供服务，必须公开修改后的源代码
+- 所有衍生作品必须使用相同的 AGPL-3.0 许可证
 
 ---
 
-## 📄 License
-
-MIT License — 自由使用、修改和分发。
-
----
-
-Made with ✨ by ContextPrompt AI
+Made with ContextPrompt AI

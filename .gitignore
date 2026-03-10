@@ -50,8 +50,14 @@ ehthumbs.db
 *.pem
 *.crx
 
+# WXT
+.wxt/
+
 # Development tools
 assets/icons/generate-icons.html
+
+# Native Messaging Host (user-specific paths)
+native-host/node_modules/
 
 # AI assistant config
 .claude/

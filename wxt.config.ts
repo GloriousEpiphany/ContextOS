@@ -17,6 +17,9 @@ export default defineConfig({
       'contextMenus',
       'sidePanel',
       'offscreen',
+      'notifications',
+      'nativeMessaging',
+      'tabs',
     ],
     optional_host_permissions: [
       'https://api.openai.com/*',

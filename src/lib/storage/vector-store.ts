@@ -53,16 +53,25 @@ export class VectorStore {
    * Search for the most similar embeddings to `queryVector` using brute-force
    * cosine similarity. Returns the top-K results whose similarity exceeds the
    * threshold, sorted descending by similarity.
+   *
+   * When there are >1000 embeddings, uses bucket pre-filtering by node tags/domain
+   * to reduce the search space if filterNodeIds is provided.
    */
   async search(
     queryVector: Float32Array,
     topK: number = DEFAULT_TOP_K,
     threshold: number = DEFAULT_THRESHOLD,
+    filterNodeIds?: Set<number>,
   ): Promise<SearchResult[]> {
-    const allEmbeddings = await db.embeddings.toArray();
+    let allEmbeddings = await db.embeddings.toArray();
 
     if (allEmbeddings.length === 0) {
       return [];
+    }
+
+    // Bucket optimization: if >1000 embeddings and filter is provided, narrow scope
+    if (filterNodeIds && filterNodeIds.size > 0 && allEmbeddings.length > 1000) {
+      allEmbeddings = allEmbeddings.filter((e) => filterNodeIds.has(e.nodeId));
     }
 
     // Pre-compute query magnitude once

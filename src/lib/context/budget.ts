@@ -13,12 +13,9 @@ const MODEL_TOKEN_LIMITS: Record<string, number> = {
   // OpenAI
   'gpt-4o': 128000,
   'gpt-4o-mini': 128000,
-  'gpt-4-turbo': 128000,
-  'gpt-3.5-turbo': 16385,
   // Anthropic
-  'claude-sonnet-4-20250514': 200000,
-  'claude-haiku-4-20250414': 200000,
-  'claude-3-5-sonnet-20241022': 200000,
+  'claude-sonnet-4-6-20250514': 200000,
+  'claude-haiku-4-5-20251001': 200000,
   // DeepSeek
   'deepseek-chat': 64000,
   'deepseek-reasoner': 64000,
@@ -49,7 +46,7 @@ export function estimateTokens(text: string): number {
     const code = text.charCodeAt(i);
     // CJK Unified Ideographs range
     if (code >= 0x4e00 && code <= 0x9fff) {
-      tokens += 1 / 1.5;
+      tokens += 1.5;
     } else {
       tokens += 1 / 4;
     }

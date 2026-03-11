@@ -5,7 +5,13 @@
     language: 'auto',
     aiProvider: '',
     aiApiKey: '',
+    captureDepth: 'standard',
+    knowledgeGraphEnabled: true,
   });
+
+  function t(key: string, fallback: string): string {
+    return chrome.i18n.getMessage(key) || fallback;
+  }
 
   const steps = ['Welcome', 'Quick Setup', 'Get Started'];
 
@@ -20,7 +26,11 @@
 
   async function finish() {
     try {
-      const payload: Record<string, any> = { language: settings.language };
+      const payload: Record<string, any> = {
+        language: settings.language,
+        captureDepth: settings.captureDepth,
+        knowledgeGraphEnabled: settings.knowledgeGraphEnabled,
+      };
       if (settings.aiProvider) {
         payload.aiEnabled = true;
         payload.aiProvider = settings.aiProvider;
@@ -88,8 +98,8 @@
       <!-- Step 2: Quick Setup -->
       {:else if currentStep === 1}
         <div class="step-setup">
-          <h2>Quick Setup</h2>
-          <p class="setup-desc">Configure your preferences. You can always change these later in Settings.</p>
+          <h2>{t('quickSetup', 'Quick Setup')}</h2>
+          <p class="setup-desc">{t('quickSetupDesc', 'Configure your preferences. You can always change these later in Settings.')}</p>
 
           <div class="form-section">
             <label class="form-label" for="language-select">Language</label>
@@ -112,9 +122,26 @@
             </select>
           </div>
 
+          <div class="form-section">
+            <label class="form-label" for="depth-select">{t('captureDepth', 'Capture Depth')}</label>
+            <select id="depth-select" class="form-select" bind:value={settings.captureDepth}>
+              <option value="light">{t('depthLight', 'Light')}</option>
+              <option value="standard">{t('depthStandard', 'Standard (Recommended)')}</option>
+              <option value="deep">{t('depthDeep', 'Deep')}</option>
+            </select>
+          </div>
+
+          <div class="form-section">
+            <label class="form-label">
+              <input type="checkbox" bind:checked={settings.knowledgeGraphEnabled} style="margin-right: 8px;" />
+              {t('knowledgeGraphTitle', 'Knowledge Graph')}
+            </label>
+            <p class="form-hint">Build connections between captured pages automatically.</p>
+          </div>
+
           {#if settings.aiProvider}
             <div class="form-section">
-              <label class="form-label" for="api-key-input">API Key</label>
+              <label class="form-label" for="api-key-input">{t('apiKey', 'API Key')}</label>
               <input
                 id="api-key-input"
                 type="password"
@@ -130,8 +157,8 @@
       <!-- Step 3: Get Started -->
       {:else if currentStep === 2}
         <div class="step-getstarted">
-          <h2>You're All Set!</h2>
-          <p class="setup-desc">Here are a few tips to get you started.</p>
+          <h2>{t('youreAllSet', "You're All Set!")}</h2>
+          <p class="setup-desc">{t('tipsDesc', 'Here are a few tips to get you started.')}</p>
 
           <div class="tips">
             <div class="tip-card">
@@ -163,15 +190,15 @@
     <!-- Navigation Buttons -->
     <div class="nav-buttons">
       {#if currentStep > 0}
-        <button class="btn btn-secondary" onclick={prevStep}>Previous</button>
+        <button class="btn btn-secondary" onclick={prevStep}>{t('previous', 'Previous')}</button>
       {:else}
         <div></div>
       {/if}
 
       {#if currentStep < steps.length - 1}
-        <button class="btn btn-primary" onclick={nextStep}>Next</button>
+        <button class="btn btn-primary" onclick={nextStep}>{t('next', 'Next')}</button>
       {:else}
-        <button class="btn btn-primary" onclick={finish}>Finish</button>
+        <button class="btn btn-primary" onclick={finish}>{t('finish', 'Finish')}</button>
       {/if}
     </div>
   </div>

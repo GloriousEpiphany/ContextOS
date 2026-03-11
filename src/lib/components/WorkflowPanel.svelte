@@ -20,6 +20,8 @@
   let selectedWorkflow = $state<Workflow | null>(null);
   let execution = $state<ExecutionResult | null>(null);
   let loading = $state(false);
+  let editingNew = $state(false);
+  let newWorkflow = $state<{ name: string; description: string }>({ name: '', description: '' });
 
   const stepIcons: Record<string, string> = {
     capture: 'M9 9a3 3 0 100-6 3 3 0 000 6zM9 9v6',
@@ -73,6 +75,35 @@
     }
   }
 
+  async function deleteWorkflow(id: string) {
+    if (!confirm('Delete this workflow?')) return;
+    try {
+      await sendMessage('deleteWorkflow', { id });
+      selectedWorkflow = null;
+      execution = null;
+      await loadWorkflows();
+    } catch {
+      // ignore
+    }
+  }
+
+  async function saveNewWorkflow() {
+    if (!newWorkflow.name.trim()) return;
+    try {
+      await sendMessage('saveWorkflow', {
+        id: crypto.randomUUID(),
+        name: newWorkflow.name,
+        description: newWorkflow.description,
+        steps: [],
+      });
+      editingNew = false;
+      newWorkflow = { name: '', description: '' };
+      await loadWorkflows();
+    } catch {
+      // ignore
+    }
+  }
+
   onMount(loadWorkflows);
 </script>
 
@@ -85,7 +116,16 @@
         <span class="wf-count">{workflows.length}</span>
       </div>
 
-      {#if workflows.length === 0}
+      {#if editingNew}
+        <div class="wf-new-editor">
+          <input class="wf-new-input" type="text" placeholder="Workflow name" bind:value={newWorkflow.name} />
+          <input class="wf-new-input" type="text" placeholder="Description" bind:value={newWorkflow.description} />
+          <div class="wf-new-actions">
+            <button class="wf-run" style="padding:8px;" onclick={saveNewWorkflow}>Save</button>
+            <button class="wf-back" onclick={() => (editingNew = false)}>Cancel</button>
+          </div>
+        </div>
+      {:else if workflows.length === 0}
         <div class="wf-empty">
           <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
             <rect x="6" y="4" width="10" height="8" rx="2" stroke="var(--cp-slate-300, #cbd5e1)" stroke-width="1.2"/>
@@ -126,16 +166,30 @@
           {/each}
         </div>
       {/if}
+      {#if !editingNew}
+        <div style="padding: 8px 12px;">
+          <button class="wf-run" style="padding:8px; font-size:13px;" onclick={() => (editingNew = true)}>
+            + New Workflow
+          </button>
+        </div>
+      {/if}
     </div>
   {:else}
     <!-- Workflow Detail -->
     <div class="wf-detail">
-      <button class="wf-back" onclick={() => { selectedWorkflow = null; execution = null; }}>
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M8 1.5L3 6l5 4.5"/>
-        </svg>
-        Back to workflows
-      </button>
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <button class="wf-back" onclick={() => { selectedWorkflow = null; execution = null; }}>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 1.5L3 6l5 4.5"/>
+          </svg>
+          Back to workflows
+        </button>
+        <button class="wf-del-btn" title="Delete workflow" onclick={() => deleteWorkflow(selectedWorkflow!.id)}>
+          <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 4h10M5 4V2.5a.5.5 0 01.5-.5h3a.5.5 0 01.5.5V4M11 4v7.5a1 1 0 01-1 1H4a1 1 0 01-1-1V4"/>
+          </svg>
+        </button>
+      </div>
 
       <div class="wf-detail-info">
         <h3>{selectedWorkflow.name}</h3>
@@ -572,4 +626,21 @@
   }
 
   @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* New workflow editor */
+  .wf-new-editor { padding: 12px; }
+  .wf-new-input {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--cp-slate-200, #e2e8f0); border-radius: 8px;
+    font-size: 13px; outline: none; background: white; margin-bottom: 8px; font-family: inherit; box-sizing: border-box;
+  }
+  .wf-new-input:focus { border-color: var(--cp-teal-400, #2dd4bf); }
+  .wf-new-actions { display: flex; gap: 8px; align-items: center; }
+
+  /* Delete button in detail view */
+  .wf-del-btn {
+    display: flex; align-items: center; justify-content: center; width: 30px; height: 30px;
+    border: 1px solid var(--cp-slate-200, #e2e8f0); border-radius: 8px; background: white;
+    cursor: pointer; color: var(--cp-slate-400, #94a3b8); transition: all 150ms;
+  }
+  .wf-del-btn:hover { color: var(--cp-danger, #ef4444); border-color: var(--cp-danger, #ef4444); background: #fef2f2; }
 </style>

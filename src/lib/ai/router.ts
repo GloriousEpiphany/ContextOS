@@ -130,8 +130,15 @@ export class AIRouter {
    */
   detectLanguage(text: string): string {
     const sample = text.substring(0, 500);
+    const len = sample.length || 1;
     const chineseChars = (sample.match(/[\u4e00-\u9fff]/g) || []).length;
-    if (chineseChars / sample.length > 0.1) return 'zh';
+    if (chineseChars / len > 0.1) return 'zh';
+    // Japanese: Hiragana + Katakana
+    const japaneseChars = (sample.match(/[\u3040-\u309f\u30a0-\u30ff]/g) || []).length;
+    if (japaneseChars / len > 0.05) return 'ja';
+    // Korean: Hangul
+    const koreanChars = (sample.match(/[\uac00-\ud7af\u1100-\u11ff]/g) || []).length;
+    if (koreanChars / len > 0.05) return 'ko';
     return 'en';
   }
 

@@ -202,7 +202,7 @@ export const AI_PROVIDER_CONFIGS: Record<AIProvider, AIProviderConfig> = {
   openai: {
     name: 'OpenAI',
     baseUrl: 'https://api.openai.com/v1',
-    models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo'],
+    models: ['gpt-4o', 'gpt-4o-mini'],
     defaultModel: 'gpt-4o-mini',
   },
   deepseek: {
@@ -214,8 +214,8 @@ export const AI_PROVIDER_CONFIGS: Record<AIProvider, AIProviderConfig> = {
   anthropic: {
     name: 'Anthropic',
     baseUrl: 'https://api.anthropic.com/v1',
-    models: ['claude-sonnet-4-20250514', 'claude-haiku-4-20250414', 'claude-3-5-sonnet-20241022'],
-    defaultModel: 'claude-sonnet-4-20250514',
+    models: ['claude-sonnet-4-6-20250514', 'claude-haiku-4-5-20251001'],
+    defaultModel: 'claude-sonnet-4-6-20250514',
   },
   qwen: {
     name: 'Qwen',

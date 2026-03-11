@@ -1480,8 +1480,448 @@ declare module "wxt/browser" {
       substitutions?: string | string[],
       options?: GetMessageOptions,
     ): string;
+    /**
+     * "Knowledge"
+     */
     getMessage(
-      messageName: "@@extension_id" | "@@ui_locale" | "@@bidi_dir" | "@@bidi_reversed_dir" | "@@bidi_start_edge" | "@@bidi_end_edge" | "extName" | "extDescription" | "capture" | "settings" | "back" | "savedContexts" | "clearAll" | "fuse" | "multiSelectHint" | "emptyTitle" | "emptyHint" | "promptTemplate" | "enableInjection" | "enableInjectionDesc" | "theme" | "themeSystem" | "themeLight" | "themeDark" | "language" | "langAuto" | "aiIntegration" | "enableAI" | "enableAIDesc" | "captureDepth" | "captureDepthDesc" | "depthLight" | "depthStandard" | "depthDeep" | "apiProvider" | "apiKey" | "customBaseUrl" | "model" | "modelDesc" | "testConnection" | "testing" | "privacy" | "privacyLocal" | "privacyOptional" | "privacyKeys" | "privacyPersist" | "contextCaptured" | "deleted" | "allCleared" | "connectionSuccess" | "connectionFailed" | "noActiveTab" | "cannotCapture" | "saveFailed" | "captureFailed" | "loadFailed" | "deleteFailed" | "clearFailed" | "confirmClearAll" | "justNow" | "minAgo" | "hrAgo" | "search" | "export" | "import" | "exportSuccess" | "importSuccess" | "importFailed" | "edit" | "save" | "cancel" | "title" | "notes" | "tags" | "tagsPlaceholder" | "editContext" | "updated" | "history" | "promptHistory" | "noHistory" | "copyPrompt" | "copied" | "favorite" | "unfavorite" | "favorites" | "noFavorites" | "templateEditor" | "templateName" | "templateContent" | "templatePlaceholders" | "addTemplate" | "deleteTemplate" | "confirmDeleteTemplate" | "capturePageMenu" | "captureSelectionMenu" | "captureLinkMenu" | "autoCapture" | "autoCaptureDesc" | "autoCapturePatterns" | "noContent" | "fuseSuccess" | "fuseFailed" | "selectAtLeast2" | "noContext" | "promptInserted" | "preview" | "insertPrompt" | "editPrompt" | "quality" | "clarity" | "specificity" | "completeness" | "overall" | "suggestions" | "improvedPrompt" | "promptLibrary" | "codeReview" | "contentSummary" | "translation" | "researchAnalysis" | "welcomeTitle" | "welcomeDesc" | "onboardingStep1" | "onboardingStep2" | "onboardingStep3" | "getStarted" | "next" | "skip" | "contexts" | "library" | "writingAssistant" | "viewFull" | "copy" | "delete" | "backToList" | "aiSummarize" | "copyFullContent" | "analyzeQuality" | "clear" | "searchContexts" | "qualityPlaceholder" | "noContextsFound" | "noHistoryYet" | "untitled" | "aiSummaryLabel" | "summarizing" | "failed" | "retry" | "noContentCaptured" | "analyzing" | "fav" | "craftPrompt" | "craftPromptTitle" | "promptPreview" | "insertPromptBtn" | "noChatContent" | "noTextSelected" | "noDetailedContent" | "inputFieldNotFound" | "typeQuestionHere" | "noMatchingContexts" | "tryDifferentSearch" | "aiSummaryReady" | "aiSummarizing" | "aiError" | "errorPrefix" | "noCustomTemplates" | "confirmClearHistory" | "exportFailed" | "permissionDenied" | "localFirst" | "openSidePanel" | "captureSettings" | "autoSummarize" | "autoSummarizeDesc" | "contentExtractionAmount" | "autoCaptureLabelText" | "onboardingStep1Desc" | "onboardingStep3Desc" | "chars" | "mAgo" | "hAgo",
+      messageName: "knowledge",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Graph"
+     */
+    getMessage(
+      messageName: "graph",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Workflows"
+     */
+    getMessage(
+      messageName: "workflows",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Search knowledge base..."
+     */
+    getMessage(
+      messageName: "searchKnowledge",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "No results for"
+     */
+    getMessage(
+      messageName: "noResults",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "No knowledge nodes yet"
+     */
+    getMessage(
+      messageName: "noKnowledgeNodes",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Add pages to get started"
+     */
+    getMessage(
+      messageName: "addPages",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Add Page"
+     */
+    getMessage(
+      messageName: "addPage",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Assemble"
+     */
+    getMessage(
+      messageName: "assemble",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Assemble Context"
+     */
+    getMessage(
+      messageName: "assembleContext",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Enter query to assemble context..."
+     */
+    getMessage(
+      messageName: "assembleQuery",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Context copied to clipboard"
+     */
+    getMessage(
+      messageName: "contextCopied",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Context assembled & copied"
+     */
+    getMessage(
+      messageName: "contextAssembled",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Node removed"
+     */
+    getMessage(
+      messageName: "nodeRemoved",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Knowledge exported"
+     */
+    getMessage(
+      messageName: "knowledgeExported",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "nodes"
+     */
+    getMessage(
+      messageName: "nodes",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "links"
+     */
+    getMessage(
+      messageName: "links",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "views"
+     */
+    getMessage(
+      messageName: "views",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Summary"
+     */
+    getMessage(
+      messageName: "summary",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Content"
+     */
+    getMessage(
+      messageName: "content",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Saved to knowledge base"
+     */
+    getMessage(
+      messageName: "savedToKnowledge",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Summary copied to clipboard"
+     */
+    getMessage(
+      messageName: "summaryCopied",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Translation copied to clipboard"
+     */
+    getMessage(
+      messageName: "translationCopied",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Copied as Markdown"
+     */
+    getMessage(
+      messageName: "copiedMarkdown",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Operation failed"
+     */
+    getMessage(
+      messageName: "operationFailed",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Summarizing..."
+     */
+    getMessage(
+      messageName: "summaryInProgress",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Translating..."
+     */
+    getMessage(
+      messageName: "translating",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Summarization failed"
+     */
+    getMessage(
+      messageName: "summarizeFailed",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Translation failed"
+     */
+    getMessage(
+      messageName: "translateFailed",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "New Workflow"
+     */
+    getMessage(
+      messageName: "newWorkflow",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Delete this workflow?"
+     */
+    getMessage(
+      messageName: "deleteWorkflow",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Back to workflows"
+     */
+    getMessage(
+      messageName: "backToWorkflows",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Run Workflow"
+     */
+    getMessage(
+      messageName: "runWorkflow",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Running..."
+     */
+    getMessage(
+      messageName: "running",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Completed"
+     */
+    getMessage(
+      messageName: "completed",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "View results"
+     */
+    getMessage(
+      messageName: "viewResults",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "No workflows available"
+     */
+    getMessage(
+      messageName: "noWorkflows",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Preset workflows will appear here"
+     */
+    getMessage(
+      messageName: "presetWorkflows",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Previous"
+     */
+    getMessage(
+      messageName: "previous",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Finish"
+     */
+    getMessage(
+      messageName: "finish",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Quick Setup"
+     */
+    getMessage(
+      messageName: "quickSetup",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Configure your preferences. You can always change these later in Settings."
+     */
+    getMessage(
+      messageName: "quickSetupDesc",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "You're All Set!"
+     */
+    getMessage(
+      messageName: "youreAllSet",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Here are a few tips to get you started."
+     */
+    getMessage(
+      messageName: "tipsDesc",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Capture the current page instantly from any tab."
+     */
+    getMessage(
+      messageName: "captureInstant",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Generate an AI prompt from your captured contexts."
+     */
+    getMessage(
+      messageName: "generatePrompt",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Access the full interface without leaving your current tab."
+     */
+    getMessage(
+      messageName: "sidePanelTip",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Open Side Panel"
+     */
+    getMessage(
+      messageName: "openSidePanelLink",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Knowledge Graph"
+     */
+    getMessage(
+      messageName: "knowledgeGraphTitle",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Local AI"
+     */
+    getMessage(
+      messageName: "localAITitle",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Smart Capture"
+     */
+    getMessage(
+      messageName: "smartCaptureTitle",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Settings"
+     */
+    getMessage(
+      messageName: "settingsGear",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Page added to knowledge base"
+     */
+    getMessage(
+      messageName: "pageAdded",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "Multi-select"
+     */
+    getMessage(
+      messageName: "multiSelect",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    /**
+     * "selected"
+     */
+    getMessage(
+      messageName: "selected",
+      substitutions?: string | string[],
+      options?: GetMessageOptions,
+    ): string;
+    getMessage(
+      messageName: "@@extension_id" | "@@ui_locale" | "@@bidi_dir" | "@@bidi_reversed_dir" | "@@bidi_start_edge" | "@@bidi_end_edge" | "extName" | "extDescription" | "capture" | "settings" | "back" | "savedContexts" | "clearAll" | "fuse" | "multiSelectHint" | "emptyTitle" | "emptyHint" | "promptTemplate" | "enableInjection" | "enableInjectionDesc" | "theme" | "themeSystem" | "themeLight" | "themeDark" | "language" | "langAuto" | "aiIntegration" | "enableAI" | "enableAIDesc" | "captureDepth" | "captureDepthDesc" | "depthLight" | "depthStandard" | "depthDeep" | "apiProvider" | "apiKey" | "customBaseUrl" | "model" | "modelDesc" | "testConnection" | "testing" | "privacy" | "privacyLocal" | "privacyOptional" | "privacyKeys" | "privacyPersist" | "contextCaptured" | "deleted" | "allCleared" | "connectionSuccess" | "connectionFailed" | "noActiveTab" | "cannotCapture" | "saveFailed" | "captureFailed" | "loadFailed" | "deleteFailed" | "clearFailed" | "confirmClearAll" | "justNow" | "minAgo" | "hrAgo" | "search" | "export" | "import" | "exportSuccess" | "importSuccess" | "importFailed" | "edit" | "save" | "cancel" | "title" | "notes" | "tags" | "tagsPlaceholder" | "editContext" | "updated" | "history" | "promptHistory" | "noHistory" | "copyPrompt" | "copied" | "favorite" | "unfavorite" | "favorites" | "noFavorites" | "templateEditor" | "templateName" | "templateContent" | "templatePlaceholders" | "addTemplate" | "deleteTemplate" | "confirmDeleteTemplate" | "capturePageMenu" | "captureSelectionMenu" | "captureLinkMenu" | "autoCapture" | "autoCaptureDesc" | "autoCapturePatterns" | "noContent" | "fuseSuccess" | "fuseFailed" | "selectAtLeast2" | "noContext" | "promptInserted" | "preview" | "insertPrompt" | "editPrompt" | "quality" | "clarity" | "specificity" | "completeness" | "overall" | "suggestions" | "improvedPrompt" | "promptLibrary" | "codeReview" | "contentSummary" | "translation" | "researchAnalysis" | "welcomeTitle" | "welcomeDesc" | "onboardingStep1" | "onboardingStep2" | "onboardingStep3" | "getStarted" | "next" | "skip" | "contexts" | "library" | "writingAssistant" | "viewFull" | "copy" | "delete" | "backToList" | "aiSummarize" | "copyFullContent" | "analyzeQuality" | "clear" | "searchContexts" | "qualityPlaceholder" | "noContextsFound" | "noHistoryYet" | "untitled" | "aiSummaryLabel" | "summarizing" | "failed" | "retry" | "noContentCaptured" | "analyzing" | "fav" | "craftPrompt" | "craftPromptTitle" | "promptPreview" | "insertPromptBtn" | "noChatContent" | "noTextSelected" | "noDetailedContent" | "inputFieldNotFound" | "typeQuestionHere" | "noMatchingContexts" | "tryDifferentSearch" | "aiSummaryReady" | "aiSummarizing" | "aiError" | "errorPrefix" | "noCustomTemplates" | "confirmClearHistory" | "exportFailed" | "permissionDenied" | "localFirst" | "openSidePanel" | "captureSettings" | "autoSummarize" | "autoSummarizeDesc" | "contentExtractionAmount" | "autoCaptureLabelText" | "onboardingStep1Desc" | "onboardingStep3Desc" | "chars" | "mAgo" | "hAgo" | "knowledge" | "graph" | "workflows" | "searchKnowledge" | "noResults" | "noKnowledgeNodes" | "addPages" | "addPage" | "assemble" | "assembleContext" | "assembleQuery" | "contextCopied" | "contextAssembled" | "nodeRemoved" | "knowledgeExported" | "nodes" | "links" | "views" | "summary" | "content" | "savedToKnowledge" | "summaryCopied" | "translationCopied" | "copiedMarkdown" | "operationFailed" | "summaryInProgress" | "translating" | "summarizeFailed" | "translateFailed" | "newWorkflow" | "deleteWorkflow" | "backToWorkflows" | "runWorkflow" | "running" | "completed" | "viewResults" | "noWorkflows" | "presetWorkflows" | "previous" | "finish" | "quickSetup" | "quickSetupDesc" | "youreAllSet" | "tipsDesc" | "captureInstant" | "generatePrompt" | "sidePanelTip" | "openSidePanelLink" | "knowledgeGraphTitle" | "localAITitle" | "smartCaptureTitle" | "settingsGear" | "pageAdded" | "multiSelect" | "selected",
       substitutions?: string | string[],
       options?: GetMessageOptions,
     ): string;

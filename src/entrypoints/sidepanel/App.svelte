@@ -59,7 +59,7 @@
 
   function formatDate(ts: string): string {
     const diff = Date.now() - new Date(ts).getTime();
-    if (diff < 60000) return 'Just now';
+    if (diff < 60000) return t('justNow', 'Just now');
     if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
     if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
     return new Date(ts).toLocaleDateString();
@@ -302,8 +302,33 @@
     }
   }
 
+  // ── i18n helper ──
+  function t(key: string, fallback: string): string {
+    return chrome.i18n.getMessage(key) || fallback;
+  }
+
+  // ── Theme ──
+  function applyTheme(theme?: string) {
+    const resolved = theme || 'system';
+    if (resolved === 'system') {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+    } else {
+      document.documentElement.setAttribute('data-theme', resolved);
+    }
+  }
+
   onMount(async () => {
     await Promise.all([loadNodes(), loadGraphData(), loadStats()]);
+    // Load settings for theme
+    try {
+      const settings = await sendMessage('getSettings');
+      if (settings?.theme) applyTheme(settings.theme);
+      else applyTheme();
+    } catch {
+      applyTheme();
+    }
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => applyTheme());
   });
 </script>
 
@@ -334,8 +359,8 @@
       <span class="sp-brand-name">ContextPrompt AI</span>
     </div>
     <div class="sp-stats-mini">
-      <span class="sp-stat-chip">{stats.nodes} nodes</span>
-      <span class="sp-stat-chip">{stats.relations} links</span>
+      <span class="sp-stat-chip">{stats.nodes} {t('nodes', 'nodes')}</span>
+      <span class="sp-stat-chip">{stats.relations} {t('links', 'links')}</span>
     </div>
   </header>
 
@@ -348,7 +373,7 @@
         <line x1="5" y1="8" x2="11" y2="8"/>
         <line x1="5" y1="11" x2="9" y2="11"/>
       </svg>
-      Knowledge
+      {t('knowledge', 'Knowledge')}
     </button>
     <button class="sp-tab" class:active={tab === 'graph'} onclick={() => (tab = 'graph')}>
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
@@ -359,7 +384,7 @@
         <line x1="10.5" y1="5.5" x2="9.2" y2="11.2"/>
         <line x1="6" y1="4" x2="10" y2="4"/>
       </svg>
-      Graph
+      {t('graph', 'Graph')}
     </button>
     <button class="sp-tab" class:active={tab === 'workflows'} onclick={() => (tab = 'workflows')}>
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
@@ -368,7 +393,7 @@
         <path d="M4.5 6v2a2 2 0 002 2h3a2 2 0 002-2V6" fill="none"/>
         <line x1="11.5" y1="6" x2="11.5" y2="10"/>
       </svg>
-      Workflows
+      {t('workflows', 'Workflows')}
     </button>
   </nav>
 
@@ -383,7 +408,7 @@
         <input
           type="text"
           class="sp-search-input"
-          placeholder="Search knowledge base..."
+          placeholder={t('searchKnowledge', 'Search knowledge base...')}
           bind:value={searchQuery}
           oninput={handleSearchInput}
         />
@@ -414,9 +439,9 @@
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M9 2L4 7l5 5"/>
               </svg>
-              Back
+              {t('back', 'Back')}
             </button>
-            <button class="sp-detail-del" onclick={() => deleteNode(selectedNode)} title="Delete this node">
+            <button class="sp-detail-del" onclick={() => deleteNode(selectedNode!)} title="Delete this node">
               <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M2 4h10M5 4V2.5a.5.5 0 01.5-.5h3a.5.5 0 01.5.5V4M11 4v7.5a1 1 0 01-1 1H4a1 1 0 01-1-1V4"/>
               </svg>
@@ -457,7 +482,7 @@
                     <circle cx="7" cy="7" r="3"/>
                   </svg>
                 {/if}
-                AI Summary
+                {t('aiSummarize', 'AI Summary')}
               </button>
               <button class="sp-ai-btn" onclick={aiTranslateNode} disabled={aiProcessing !== null}>
                 {#if aiProcessing === 'translate'}
@@ -468,7 +493,7 @@
                     <path d="M8 9l1.5 4 1.5-4M8.5 12h2"/>
                   </svg>
                 {/if}
-                Translate
+                {t('translation', 'Translate')}
               </button>
               <button class="sp-ai-btn" onclick={aiAssembleFromNode} disabled={aiProcessing !== null}>
                 {#if aiProcessing === 'assemble'}
@@ -482,7 +507,7 @@
                     <line x1="10.5" y1="6" x2="9" y2="8"/>
                   </svg>
                 {/if}
-                Assemble
+                {t('assemble', 'Assemble')}
               </button>
             </div>
 
@@ -490,8 +515,8 @@
               <div class="sp-ai-result">
                 <h3>{aiResult.type}</h3>
                 <p>{aiResult.text}</p>
-                <button class="sp-copy-btn" onclick={async () => { await navigator.clipboard.writeText(aiResult!.text); showNotification('Copied'); }}>
-                  Copy
+                <button class="sp-copy-btn" onclick={async () => { await navigator.clipboard.writeText(aiResult!.text); showNotification(t('copied', 'Copied')); }}>
+                  {t('copy', 'Copy')}
                 </button>
               </div>
             {/if}
@@ -499,13 +524,13 @@
             <div class="sp-detail-sections">
               {#if selectedNode.aiSummary || selectedNode.summary || selectedNode.description}
                 <div class="sp-section">
-                  <h3>Summary</h3>
+                  <h3>{t('summary', 'Summary')}</h3>
                   <p>{selectedNode.aiSummary || selectedNode.summary || selectedNode.description}</p>
                 </div>
               {/if}
               {#if selectedNode.content}
                 <div class="sp-section">
-                  <h3>Content</h3>
+                  <h3>{t('content', 'Content')}</h3>
                   <p class="sp-content-text">{selectedNode.content}</p>
                 </div>
               {/if}
@@ -522,7 +547,7 @@
             {#if displayedNodes.length === 0}
               <div class="sp-empty">
                 {#if searchQuery.trim()}
-                  <p>No results for "{searchQuery}"</p>
+                  <p>{t('noResults', 'No results for')} "{searchQuery}"</p>
                 {:else}
                   <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
                     <rect x="5" y="3" width="22" height="26" rx="3" stroke="var(--cp-slate-300)" stroke-width="1.2"/>
@@ -530,8 +555,8 @@
                     <line x1="10" y1="15" x2="22" y2="15" stroke="var(--cp-slate-200)" stroke-width="1.2" stroke-linecap="round"/>
                     <line x1="10" y1="20" x2="18" y2="20" stroke="var(--cp-slate-200)" stroke-width="1.2" stroke-linecap="round"/>
                   </svg>
-                  <p>No knowledge nodes yet</p>
-                  <p class="sp-empty-sub">Add pages to get started</p>
+                  <p>{t('noKnowledgeNodes', 'No knowledge nodes yet')}</p>
+                  <p class="sp-empty-sub">{t('addPages', 'Add pages to get started')}</p>
                 {/if}
               </div>
             {:else}
@@ -563,7 +588,7 @@
     {:else if tab === 'graph'}
       <!-- Knowledge Graph Visualization -->
       <div class="sp-graph-wrap">
-        <KnowledgeGraph nodes={graphNodes} edges={graphEdges} onNodeClick={handleGraphNodeClick} />
+        <KnowledgeGraph nodes={graphNodes as any} edges={graphEdges as any} onNodeClick={handleGraphNodeClick as any} />
       </div>
 
     {:else if tab === 'workflows'}
@@ -578,7 +603,7 @@
   {#if showAssembleInput}
     <div class="sp-assemble-panel">
       <div class="sp-assemble-header">
-        <h3>Assemble Context</h3>
+        <h3>{t('assembleContext', 'Assemble Context')}</h3>
         <button class="sp-assemble-close" title="Close" onclick={() => { showAssembleInput = false; assembleResult = null; assembleQuery = ''; }}>
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
             <line x1="3" y1="3" x2="9" y2="9"/>
@@ -590,7 +615,7 @@
         <input
           type="text"
           class="sp-assemble-input"
-          placeholder="Enter query to assemble context..."
+          placeholder={t('assembleQuery', 'Enter query to assemble context...')}
           bind:value={assembleQuery}
           onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter') assembleContextFromQuery(); }}
         />
@@ -622,7 +647,7 @@
         <line x1="7" y1="2" x2="7" y2="12"/>
         <line x1="2" y1="7" x2="12" y2="7"/>
       </svg>
-      Add Page
+      {t('addPage', 'Add Page')}
     </button>
     <button class="sp-btn" onclick={() => { showAssembleInput = !showAssembleInput; }}>
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
@@ -632,13 +657,20 @@
         <line x1="3.5" y1="6" x2="5" y2="8"/>
         <line x1="10.5" y1="6" x2="9" y2="8"/>
       </svg>
-      Assemble
+      {t('assemble', 'Assemble')}
     </button>
     <button class="sp-btn" onclick={exportKnowledge}>
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
         <path d="M7 2v7M4 6.5l3 3 3-3M2 11v1h10v-1"/>
       </svg>
-      Export
+      {t('export', 'Export')}
+    </button>
+    <!-- Phase 9B: Settings entry -->
+    <button class="sp-btn" title={t('settings', 'Settings')} onclick={() => { chrome.runtime.openOptionsPage?.() || chrome.runtime.sendMessage({ action: 'openPopup' }); }}>
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="8" cy="8" r="2"/>
+        <path d="M13.5 8a5.5 5.5 0 01-.3 1.8l1.3 1-1.2 2-1.5-.6a5.5 5.5 0 01-1.6.9L10 14.6H7.8l-.2-1.5a5.5 5.5 0 01-1.6-.9l-1.5.6-1.2-2 1.3-1A5.5 5.5 0 014.3 8c0-.6.1-1.2.3-1.8l-1.3-1 1.2-2 1.5.6a5.5 5.5 0 011.6-.9L7.8 1.4H10l.2 1.5a5.5 5.5 0 011.6.9l1.5-.6 1.2 2-1.3 1c.2.6.3 1.2.3 1.8z"/>
+      </svg>
     </button>
   </footer>
 </div>

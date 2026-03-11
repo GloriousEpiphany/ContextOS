@@ -10,7 +10,8 @@ export default defineContentScript({
 
   main() {
     browser.runtime.onMessage.addListener(
-      (message: { action: string; options?: CaptureOptions }, _sender, sendResponse) => {
+      ((msg: unknown, _sender: unknown, sendResponse: (response?: unknown) => void) => {
+        const message = msg as { action: string; options?: CaptureOptions };
         if (message.action !== 'captureContext') return;
 
         const depth = message.options?.captureDepth ?? 'standard';
@@ -25,8 +26,8 @@ export default defineContentScript({
           });
         }
 
-        // synchronous sendResponse — no need to return true
-      },
+        return true;
+      }) as Parameters<typeof browser.runtime.onMessage.addListener>[0],
     );
   },
 });

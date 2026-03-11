@@ -97,6 +97,66 @@
   --gradient-hero: linear-gradient(135deg, #0d9488 0%, #6366f1 100%);
   --gradient-surface: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
   --gradient-card: linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(248,250,252,0.9) 100%);
+
+  /* ── Semantic Layout ── */
+  --cp-white: #ffffff;
+  --cp-black: #020617;
+}
+
+/* ── Dark Theme ── */
+[data-theme="dark"] {
+  --cp-slate-50: #0f172a;
+  --cp-slate-100: #1e293b;
+  --cp-slate-200: #334155;
+  --cp-slate-300: #475569;
+  --cp-slate-400: #64748b;
+  --cp-slate-500: #94a3b8;
+  --cp-slate-600: #cbd5e1;
+  --cp-slate-700: #e2e8f0;
+  --cp-slate-800: #f1f5f9;
+  --cp-slate-900: #f8fafc;
+  --cp-slate-950: #ffffff;
+
+  --cp-teal-50: #042f2e;
+  --cp-teal-100: #134e4a;
+  --cp-teal-200: #115e59;
+  --cp-teal-300: #0f766e;
+  --cp-teal-400: #14b8a6;
+  --cp-teal-500: #2dd4bf;
+  --cp-teal-600: #5eead4;
+  --cp-teal-700: #99f6e4;
+  --cp-teal-800: #ccfbf1;
+  --cp-teal-900: #f0fdfa;
+
+  --cp-indigo-50: #1e1b4b;
+  --cp-indigo-100: #312e81;
+  --cp-indigo-400: #818cf8;
+  --cp-indigo-500: #a5b4fc;
+  --cp-indigo-600: #c7d2fe;
+
+  --cp-white: #0f172a;
+  --cp-black: #f8fafc;
+
+  --cp-success: #34d399;
+  --cp-success-light: #064e3b;
+  --cp-warning: #fbbf24;
+  --cp-warning-light: #78350f;
+  --cp-danger: #f87171;
+  --cp-danger-light: #7f1d1d;
+  --cp-info: #22d3ee;
+  --cp-info-light: #164e63;
+
+  --glass-bg: rgba(15, 23, 42, 0.75);
+  --glass-border: rgba(94, 234, 212, 0.08);
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25), 0 1px 3px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 2px 4px -1px rgba(0, 0, 0, 0.3), 0 4px 6px -1px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 4px 6px -2px rgba(0, 0, 0, 0.25), 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+  --shadow-xl: 0 8px 10px -4px rgba(0, 0, 0, 0.3), 0 20px 25px -5px rgba(0, 0, 0, 0.35);
+
+  --gradient-surface: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  --gradient-card: linear-gradient(180deg, rgba(30,41,59,0.9) 0%, rgba(15,23,42,0.9) 100%);
 }
 
 /* ── Base Styles ── */

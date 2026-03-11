@@ -4,45 +4,12 @@
  * Migrated from lib/ai-service.js with TypeScript types.
  */
 
-export interface AIProviderConfig {
-  name: string;
-  baseUrl: string;
-  models: string[];
-  defaultModel: string;
-}
+import { AI_PROVIDER_CONFIGS } from '@/types/index';
 
-export const API_PROVIDERS: Record<string, AIProviderConfig> = {
-  openai: {
-    name: 'OpenAI',
-    baseUrl: 'https://api.openai.com/v1',
-    models: ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-nano'],
-    defaultModel: 'gpt-4o-mini',
-  },
-  deepseek: {
-    name: 'DeepSeek',
-    baseUrl: 'https://api.deepseek.com/v1',
-    models: ['deepseek-chat', 'deepseek-reasoner'],
-    defaultModel: 'deepseek-chat',
-  },
-  anthropic: {
-    name: 'Anthropic',
-    baseUrl: 'https://api.anthropic.com/v1',
-    models: ['claude-haiku-4-5-20251001', 'claude-sonnet-4-6-20250514'],
-    defaultModel: 'claude-haiku-4-5-20251001',
-  },
-  qwen: {
-    name: '通义千问',
-    baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
-    models: ['qwen-turbo', 'qwen-plus', 'qwen-max'],
-    defaultModel: 'qwen-turbo',
-  },
-  custom: {
-    name: 'Custom / 自定义',
-    baseUrl: '',
-    models: [],
-    defaultModel: '',
-  },
-};
+export type { AIProviderConfig } from '@/types/index';
+
+/** Re-export for backward compat — canonical source is types/index.ts */
+export const API_PROVIDERS = AI_PROVIDER_CONFIGS;
 
 export interface CloudAISettings {
   aiEnabled: boolean;
@@ -60,6 +27,16 @@ interface ChatMessage {
 interface CallOptions {
   temperature?: number;
   maxTokens?: number;
+}
+
+interface AnthropicResponse {
+  content?: Array<{ type: string; text: string }>;
+  error?: { message: string };
+}
+
+interface OpenAIResponse {
+  choices?: Array<{ message: { content: string } }>;
+  error?: { message: string };
 }
 
 export class CloudAIEngine {
@@ -89,11 +66,25 @@ export class CloudAIEngine {
     return this.enabled && !!this.apiKey && this.apiKey.length > 0;
   }
 
+  private async fetchWithRetry(url: string, init: RequestInit, maxRetries = 3): Promise<Response> {
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      const response = await fetch(url, init);
+      if (response.ok || response.status < 500 || attempt === maxRetries - 1) {
+        return response;
+      }
+      // Exponential backoff: 1s, 2s, 4s
+      await new Promise((r) => setTimeout(r, 1000 * Math.pow(2, attempt)));
+    }
+    // Unreachable, but satisfies TS
+    return fetch(url, init);
+  }
+
   private getBaseUrl(): string {
     if (this.provider === 'custom' && this.baseUrl) {
       return this.baseUrl;
     }
-    return API_PROVIDERS[this.provider]?.baseUrl ?? API_PROVIDERS.openai.baseUrl;
+    const provider = this.provider as keyof typeof API_PROVIDERS;
+    return API_PROVIDERS[provider]?.baseUrl ?? API_PROVIDERS.openai.baseUrl;
   }
 
   async callAPI(messages: ChatMessage[], options: CallOptions = {}): Promise<string> {
@@ -112,7 +103,7 @@ export class CloudAIEngine {
 
     if (isAnthropic) {
       headers['x-api-key'] = this.apiKey;
-      headers['anthropic-version'] = '2023-06-01';
+      headers['anthropic-version'] = '2024-10-22';
       const systemMsg = messages.find((m) => m.role === 'system');
       const userMsgs = messages.filter((m) => m.role !== 'system');
       requestBody = {
@@ -131,17 +122,17 @@ export class CloudAIEngine {
       };
     }
 
-    const response = await fetch(endpoint, {
+    const response = await this.fetchWithRetry(endpoint, {
       method: 'POST',
       headers,
       body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+      const errorData = await response.json().catch(() => ({} as Record<string, unknown>));
       const errMsg =
-        (errorData as any).error?.message ??
-        (errorData as any).message ??
+        (errorData as { error?: { message?: string }; message?: string }).error?.message ??
+        (errorData as { message?: string }).message ??
         `API request failed: ${response.status}`;
       throw new Error(errMsg);
     }
@@ -149,9 +140,9 @@ export class CloudAIEngine {
     const data = await response.json();
 
     if (isAnthropic) {
-      return (data as any).content?.[0]?.text ?? '';
+      return (data as AnthropicResponse).content?.[0]?.text ?? '';
     }
-    return (data as any).choices?.[0]?.message?.content ?? '';
+    return (data as OpenAIResponse).choices?.[0]?.message?.content ?? '';
   }
 
   async summarize(

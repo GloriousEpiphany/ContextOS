@@ -182,10 +182,12 @@ export class KnowledgeGraph {
       }
     }
 
+    // Cache all nodes once to avoid N+1 repeated full-table scans
+    const allNodes = await db.knowledgeNodes.toArray();
+
     // 2. URL domain match
     const nodeDomain = getDomain(node.url);
     if (nodeDomain) {
-      const allNodes = await db.knowledgeNodes.toArray();
       for (const other of allNodes) {
         if (!other.id || other.id === nodeId) continue;
         if (hasRelation(nodeId, other.id, 'url_domain')) continue;
@@ -204,7 +206,6 @@ export class KnowledgeGraph {
 
     // 3. Tag overlap (Jaccard similarity > 0.3)
     if (node.tags.length > 0) {
-      const allNodes = await db.knowledgeNodes.toArray();
       for (const other of allNodes) {
         if (!other.id || other.id === nodeId) continue;
         if (other.tags.length === 0) continue;

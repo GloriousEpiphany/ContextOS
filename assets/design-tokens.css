@@ -161,6 +161,45 @@
 
 /* === Dark Theme Tokens === */
 [data-theme="dark"] {
+  /* Invert slate scale (50↔900, 100↔800, etc.) */
+  --cp-slate-50: #0f172a;
+  --cp-slate-100: #1e293b;
+  --cp-slate-200: #334155;
+  --cp-slate-300: #475569;
+  --cp-slate-400: #64748b;
+  --cp-slate-500: #94a3b8;
+  --cp-slate-600: #cbd5e1;
+  --cp-slate-700: #e2e8f0;
+  --cp-slate-800: #f1f5f9;
+  --cp-slate-850: #f5f7fa;
+  --cp-slate-900: #f8fafc;
+  --cp-slate-950: #ffffff;
+
+  /* Dark-friendly teal */
+  --cp-teal-50: #042f2e;
+  --cp-teal-100: #134e4a;
+  --cp-teal-200: #115e59;
+  --cp-teal-300: #0f766e;
+  --cp-teal-400: #14b8a6;
+  --cp-teal-500: #2dd4bf;
+  --cp-teal-600: #5eead4;
+  --cp-teal-700: #99f6e4;
+  --cp-teal-800: #ccfbf1;
+  --cp-teal-900: #f0fdfa;
+
+  --cp-white: #0f172a;
+  --cp-black: #f8fafc;
+
+  /* Semantic dark */
+  --cp-success: #34d399;
+  --cp-success-light: #064e3b;
+  --cp-warning: #fbbf24;
+  --cp-warning-light: #78350f;
+  --cp-danger: #f87171;
+  --cp-danger-light: #7f1d1d;
+  --cp-info: #22d3ee;
+  --cp-info-light: #164e63;
+
   --glass-bg: rgba(15, 23, 42, 0.75);
   --glass-bg-subtle: rgba(15, 23, 42, 0.6);
   --glass-border: rgba(94, 234, 212, 0.08);

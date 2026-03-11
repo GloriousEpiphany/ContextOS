@@ -80,34 +80,39 @@ export default defineContentScript({
 
       toolbar = document.createElement('div');
       toolbar.className = 'cp-toolbar';
+      const saveLabel = chrome.i18n.getMessage('save') || 'Save';
+      const summaryLabel = chrome.i18n.getMessage('contentSummary') || 'Summary';
+      const translateLabel = chrome.i18n.getMessage('translation') || 'Translate';
+      const copyLabel = chrome.i18n.getMessage('copy') || 'Copy';
+
       toolbar.innerHTML = `
-        <button class="cp-btn" data-action="save" title="Save to Knowledge Base">
+        <button class="cp-btn" data-action="save" title="${saveLabel}">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 2H4a1 1 0 00-1 1v10a1 1 0 001 1h8a1 1 0 001-1V5l-3-3z"/>
             <path d="M9 2v3h3M7 8h2M7 10.5h4"/>
           </svg>
-          Save
+          ${saveLabel}
         </button>
         <div class="cp-divider"></div>
-        <button class="cp-btn" data-action="summarize" title="AI Summarize">
+        <button class="cp-btn" data-action="summarize" title="${summaryLabel}">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 4h10M3 7h7M3 10h5"/>
           </svg>
-          Summary
+          ${summaryLabel}
         </button>
-        <button class="cp-btn" data-action="translate" title="Translate">
+        <button class="cp-btn" data-action="translate" title="${translateLabel}">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M2 3h6M5 1v2M3 3c.6 2.8 2.4 5 5 6.5M9 3c-.6 2.8-2.4 5-5 6.5"/>
             <path d="M9 9l1.5 4 1.5-4 1.5 4"/>
           </svg>
-          Translate
+          ${translateLabel}
         </button>
-        <button class="cp-btn" data-action="copy" title="Copy as Markdown">
+        <button class="cp-btn" data-action="copy" title="${copyLabel}">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <rect x="5" y="5" width="8" height="8" rx="1"/>
             <path d="M3 11V3h8"/>
           </svg>
-          Copy
+          ${copyLabel}
         </button>
       `;
 
@@ -172,47 +177,47 @@ export default defineContentScript({
                 tags: [],
               },
             });
-            showToast('Saved to knowledge base');
+            showToast(chrome.i18n.getMessage('savedToKnowledge') || 'Saved to knowledge base');
             break;
 
           case 'summarize':
-            showToast('Summarizing...');
+            showToast(chrome.i18n.getMessage('summaryInProgress') || 'Summarizing...');
             const summary = await chrome.runtime.sendMessage({
               action: 'summarizeSelection',
               data: { content: text },
             });
             if (summary?.success && summary.summary) {
               await navigator.clipboard.writeText(summary.summary);
-              showToast('Summary copied to clipboard');
+              showToast(chrome.i18n.getMessage('summaryCopied') || 'Summary copied to clipboard');
             } else {
-              showToast('Summarization failed');
+              showToast(chrome.i18n.getMessage('summarizeFailed') || 'Summarization failed');
             }
             break;
 
           case 'translate':
-            showToast('Translating...');
+            showToast(chrome.i18n.getMessage('translating') || 'Translating...');
             const translation = await chrome.runtime.sendMessage({
               action: 'translateSelection',
               data: { content: text },
             });
             if (translation?.success && translation.result) {
               await navigator.clipboard.writeText(translation.result);
-              showToast('Translation copied to clipboard');
+              showToast(chrome.i18n.getMessage('translationCopied') || 'Translation copied to clipboard');
             } else {
-              showToast('Translation failed');
+              showToast(chrome.i18n.getMessage('translateFailed') || 'Translation failed');
             }
             break;
 
           case 'copy': {
             const markdown = `> ${text.replace(/\n/g, '\n> ')}\n\n— [${document.title}](${location.href})`;
             await navigator.clipboard.writeText(markdown);
-            showToast('Copied as Markdown');
+            showToast(chrome.i18n.getMessage('copiedMarkdown') || 'Copied as Markdown');
             break;
           }
         }
       } catch (err) {
         console.error('[SelectionToolbar] Action error:', err);
-        showToast('Operation failed');
+        showToast(chrome.i18n.getMessage('operationFailed') || 'Operation failed');
       }
 
       hideToolbar();

@@ -1,5 +1,6 @@
 <div align="center">
-# ContextOS
+
+<h1>ContextOS</h1>
 
 **你的浏览器里藏着一座知识金矿。ContextOS 帮你挖出来。**
 

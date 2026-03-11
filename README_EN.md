@@ -2,7 +2,7 @@
 
 <img src="promo/contextprompt-ai.png" alt="ContextOS" width="440">
 
-# ContextOS
+<h1>ContextOS</h1>
 
 **Your browser is sitting on a goldmine of context. ContextOS mines it.**
 

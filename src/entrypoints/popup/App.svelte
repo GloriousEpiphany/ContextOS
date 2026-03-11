@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { loadLocale, t as _t } from '@/lib/i18n';
 
   // ── State ──
   let view = $state<'main' | 'settings' | 'history'>('main');
@@ -32,8 +33,10 @@
   let fusing = $state(false);
 
   // ── i18n helper ──
+  let localeVersion = $state(0);
   function t(key: string, fallback: string): string {
-    return chrome.i18n.getMessage(key) || fallback;
+    void localeVersion;
+    return _t(key, fallback);
   }
 
   // ── Computed ──
@@ -164,6 +167,8 @@
   async function saveSettingsAction() {
     await sendMessage('saveSettings', settings);
     applyTheme(settings.theme);
+    await loadLocale(settings.language);
+    localeVersion++;
     showNotification(t('save', 'Settings saved'));
   }
 
@@ -322,6 +327,7 @@
 
   onMount(async () => {
     await Promise.all([loadContexts(), loadTemplates(), loadSettings(), loadStats()]);
+    await loadLocale(settings.language);
     applyTheme();
     // Listen for system theme changes
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { loadLocale, t as _t } from '@/lib/i18n';
   import KnowledgeGraph from '@/lib/components/KnowledgeGraph.svelte';
   import WorkflowPanel from '@/lib/components/WorkflowPanel.svelte';
 
@@ -26,9 +27,10 @@
   }
 
   // ── State ──
-  let tab = $state<'knowledge' | 'graph' | 'workflows'>('knowledge');
+  let tab = $state<'knowledge' | 'graph' | 'workflows' | 'settings'>('knowledge');
   let nodes = $state<KnowledgeNode[]>([]);
   let selectedNode = $state<KnowledgeNode | null>(null);
+  let graphSelectedNode = $state<KnowledgeNode | null>(null);
   let searchQuery = $state('');
   let searchResults = $state<KnowledgeNode[]>([]);
   let loading = $state(false);
@@ -41,6 +43,8 @@
   let assembleQuery = $state('');
   let assembleResult = $state<string | null>(null);
   let showAssembleInput = $state(false);
+  let settings = $state<any>({});
+  let localeVersion = $state(0);
 
   // ── Computed ──
   let displayedNodes = $derived(
@@ -97,8 +101,7 @@
   }
 
   function handleGraphNodeClick(node: KnowledgeNode) {
-    selectedNode = node;
-    tab = 'knowledge';
+    graphSelectedNode = node;
   }
 
   async function addCurrentPage() {
@@ -217,6 +220,18 @@
     } catch { /* ignore */ }
   }
 
+  async function loadSettings() {
+    settings = (await sendMessage('getSettings')) || {};
+  }
+
+  async function saveSettingsAction() {
+    await sendMessage('saveSettings', settings);
+    applyTheme(settings.theme);
+    await loadLocale(settings.language);
+    localeVersion++;
+    showNotification(t('save', 'Settings saved'));
+  }
+
   async function aiSummarizeNode() {
     if (!selectedNode) return;
     aiProcessing = 'summarize';
@@ -304,7 +319,8 @@
 
   // ── i18n helper ──
   function t(key: string, fallback: string): string {
-    return chrome.i18n.getMessage(key) || fallback;
+    void localeVersion;
+    return _t(key, fallback);
   }
 
   // ── Theme ──
@@ -322,23 +338,24 @@
   }
 
   onMount(async () => {
-    await Promise.all([loadNodes(), loadGraphData(), loadStats()]);
+    await Promise.all([loadNodes(), loadGraphData(), loadStats(), loadSettings()]);
+    await loadLocale(settings.language);
     // Load settings for theme
-    try {
-      const settings = await sendMessage('getSettings');
-      if (settings?.theme) applyTheme(settings.theme);
-      else applyTheme();
-    } catch {
-      applyTheme();
-    }
+    if (settings?.theme) applyTheme(settings.theme);
+    else applyTheme();
     // Re-evaluate system theme on OS change (only matters when theme === 'system')
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => applyTheme());
-    // Listen for settings changes from popup (e.g. user toggles dark mode)
-    chrome.storage.onChanged.addListener((changes) => {
+    // Listen for settings changes from popup (e.g. user toggles dark mode or language)
+    chrome.storage.onChanged.addListener(async (changes) => {
       if (changes.settings?.newValue) {
-        const newTheme = changes.settings.newValue.theme;
-        if (newTheme && newTheme !== _savedTheme) {
-          applyTheme(newTheme);
+        const newSettings = changes.settings.newValue;
+        if (newSettings.theme && newSettings.theme !== _savedTheme) {
+          applyTheme(newSettings.theme);
+        }
+        if (newSettings.language !== settings.language) {
+          settings = { ...settings, ...newSettings };
+          await loadLocale(newSettings.language);
+          localeVersion++;
         }
       }
     });
@@ -408,10 +425,17 @@
       </svg>
       {t('workflows', 'Workflows')}
     </button>
+    <button class="sp-tab" class:active={tab === 'settings'} onclick={() => (tab = 'settings')}>
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="8" cy="8" r="2"/>
+        <path d="M13.5 8a5.5 5.5 0 01-.3 1.8l1.3 1-1.2 2-1.5-.6a5.5 5.5 0 01-1.6.9L10 14.6H7.8l-.2-1.5a5.5 5.5 0 01-1.6-.9l-1.5.6-1.2-2 1.3-1A5.5 5.5 0 014.3 8c0-.6.1-1.2.3-1.8l-1.3-1 1.2-2 1.5.6a5.5 5.5 0 011.6-.9L7.8 1.4H10l.2 1.5a5.5 5.5 0 011.6.9l1.5-.6 1.2 2-1.3 1c.2.6.3 1.2.3 1.8z"/>
+      </svg>
+      {t('settings', 'Settings')}
+    </button>
   </nav>
 
   <!-- Search Bar (Knowledge & Graph tabs) -->
-  {#if tab !== 'workflows'}
+  {#if tab === 'knowledge' || tab === 'graph'}
     <div class="sp-search">
       <div class="sp-search-wrap">
         <svg class="sp-search-ico" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4">
@@ -602,12 +626,114 @@
       <!-- Knowledge Graph Visualization -->
       <div class="sp-graph-wrap">
         <KnowledgeGraph nodes={graphNodes as any} edges={graphEdges as any} onNodeClick={handleGraphNodeClick as any} />
+        {#if graphSelectedNode}
+          <div class="sp-graph-actions">
+            <span class="sp-graph-actions-title">{graphSelectedNode.title || 'Untitled'}</span>
+            <div class="sp-graph-actions-btns">
+              <button class="sp-btn" onclick={() => { selectedNode = graphSelectedNode; graphSelectedNode = null; tab = 'knowledge'; }}>
+                {t('viewFull', 'View')}
+              </button>
+              <button class="sp-btn sp-btn-danger" onclick={async () => { if (confirm(t('confirmDelete', 'Delete this node?'))) { await deleteNode(graphSelectedNode!); graphSelectedNode = null; } }}>
+                {t('delete', 'Delete')}
+              </button>
+              <button class="sp-graph-actions-close" onclick={() => (graphSelectedNode = null)}>
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                  <line x1="3" y1="3" x2="9" y2="9"/><line x1="9" y1="3" x2="3" y2="9"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        {/if}
       </div>
 
     {:else if tab === 'workflows'}
       <!-- Workflow Panel -->
       <div class="sp-workflow-wrap">
         <WorkflowPanel />
+      </div>
+
+    {:else if tab === 'settings'}
+      <!-- Settings Panel -->
+      <div class="sp-settings">
+        <!-- Theme -->
+        <section class="sp-settings-group">
+          <h3>{t('theme', 'Theme')}</h3>
+          <div class="sp-setting-row">
+            <span class="sp-setting-label">{t('theme', 'Theme')}</span>
+            <select class="sp-setting-select" bind:value={settings.theme} onchange={saveSettingsAction}>
+              <option value="system">{t('themeSystem', 'System')}</option>
+              <option value="light">{t('themeLight', 'Light')}</option>
+              <option value="dark">{t('themeDark', 'Dark')}</option>
+            </select>
+          </div>
+        </section>
+
+        <!-- Language -->
+        <section class="sp-settings-group">
+          <h3>{t('language', 'Language')}</h3>
+          <div class="sp-setting-row">
+            <span class="sp-setting-label">{t('language', 'Language')}</span>
+            <select class="sp-setting-select" bind:value={settings.language} onchange={saveSettingsAction}>
+              <option value="auto">{t('langAuto', 'Auto')}</option>
+              <option value="en">English</option>
+              <option value="zh">中文</option>
+            </select>
+          </div>
+        </section>
+
+        <!-- AI Integration -->
+        <section class="sp-settings-group">
+          <h3>{t('aiIntegration', 'AI Integration')}</h3>
+          <div class="sp-setting-row">
+            <span class="sp-setting-label">{t('enableAI', 'Enable AI')}</span>
+            <label class="sp-toggle">
+              <input type="checkbox" bind:checked={settings.aiEnabled} onchange={saveSettingsAction} />
+              <span class="sp-toggle-track"><span class="sp-toggle-thumb"></span></span>
+            </label>
+          </div>
+          {#if settings.aiEnabled}
+            <div class="sp-setting-row">
+              <span class="sp-setting-label">{t('apiProvider', 'Provider')}</span>
+              <select class="sp-setting-select" bind:value={settings.aiProvider} onchange={saveSettingsAction}>
+                <option value="openai">OpenAI</option>
+                <option value="deepseek">DeepSeek</option>
+                <option value="anthropic">Anthropic</option>
+                <option value="qwen">Qwen</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+            <div class="sp-setting-row sp-setting-field">
+              <span class="sp-setting-label">{t('apiKey', 'API Key')}</span>
+              <input class="sp-setting-input" type="password" bind:value={settings.aiApiKey} onchange={saveSettingsAction} placeholder="sk-..." />
+            </div>
+            {#if settings.aiProvider === 'custom'}
+              <div class="sp-setting-row sp-setting-field">
+                <span class="sp-setting-label">{t('customBaseUrl', 'Base URL')}</span>
+                <input class="sp-setting-input" type="text" bind:value={settings.aiBaseUrl} onchange={saveSettingsAction} placeholder="https://..." />
+              </div>
+            {/if}
+          {/if}
+        </section>
+
+        <!-- Capture -->
+        <section class="sp-settings-group">
+          <h3>{t('captureSettings', 'Capture')}</h3>
+          <div class="sp-setting-row">
+            <span class="sp-setting-label">{t('captureDepth', 'Capture Depth')}</span>
+            <select class="sp-setting-select" bind:value={settings.captureDepth} onchange={saveSettingsAction}>
+              <option value="light">{t('depthLight', 'Light')}</option>
+              <option value="standard">{t('depthStandard', 'Standard')}</option>
+              <option value="deep">{t('depthDeep', 'Deep')}</option>
+            </select>
+          </div>
+          <div class="sp-setting-row">
+            <span class="sp-setting-label">{t('enableInjection', 'Button Injection')}</span>
+            <label class="sp-toggle">
+              <input type="checkbox" bind:checked={settings.enableInjection} onchange={saveSettingsAction} />
+              <span class="sp-toggle-track"><span class="sp-toggle-thumb"></span></span>
+            </label>
+          </div>
+        </section>
       </div>
     {/if}
   </div>
@@ -678,13 +804,7 @@
       </svg>
       {t('export', 'Export')}
     </button>
-    <!-- Phase 9B: Settings entry -->
-    <button class="sp-btn" title={t('settings', 'Settings')} onclick={() => { chrome.runtime.openOptionsPage?.() || chrome.runtime.sendMessage({ action: 'openPopup' }); }}>
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="8" cy="8" r="2"/>
-        <path d="M13.5 8a5.5 5.5 0 01-.3 1.8l1.3 1-1.2 2-1.5-.6a5.5 5.5 0 01-1.6.9L10 14.6H7.8l-.2-1.5a5.5 5.5 0 01-1.6-.9l-1.5.6-1.2-2 1.3-1A5.5 5.5 0 014.3 8c0-.6.1-1.2.3-1.8l-1.3-1 1.2-2 1.5.6a5.5 5.5 0 011.6-.9L7.8 1.4H10l.2 1.5a5.5 5.5 0 011.6.9l1.5-.6 1.2 2-1.3 1c.2.6.3 1.2.3 1.8z"/>
-      </svg>
-    </button>
+    <!-- Settings now in tab nav -->
   </footer>
 </div>
 
@@ -1066,12 +1186,6 @@
     word-break: break-word;
   }
 
-  /* ═══ Graph View ═══ */
-  .sp-graph-wrap {
-    height: 100%;
-    padding: 0;
-  }
-
   /* ═══ Workflow View ═══ */
   .sp-workflow-wrap {
     height: 100%;
@@ -1318,5 +1432,175 @@
     white-space: pre-wrap;
     word-break: break-word;
     font-family: var(--cp-font-mono, monospace);
+  }
+
+  /* ═══ Graph Actions Bar ═══ */
+  .sp-graph-wrap {
+    height: 100%;
+    padding: 0;
+    position: relative;
+  }
+
+  .sp-graph-actions {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    right: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 14px;
+    background: var(--cp-white, white);
+    border: 1px solid var(--cp-slate-200, #e2e8f0);
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+  }
+
+  .sp-graph-actions-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--cp-slate-700, #334155);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .sp-graph-actions-btns {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+    align-items: center;
+  }
+
+  .sp-btn-danger {
+    color: var(--cp-danger, #ef4444);
+    border-color: var(--cp-danger, #ef4444);
+  }
+  .sp-btn-danger:hover {
+    background: var(--cp-danger-light, #fee2e2);
+    border-color: var(--cp-danger, #ef4444);
+    color: var(--cp-danger, #ef4444);
+  }
+
+  .sp-graph-actions-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: var(--cp-slate-100, #f1f5f9);
+    border-radius: 50%;
+    cursor: pointer;
+    color: var(--cp-slate-400, #94a3b8);
+    transition: all 150ms;
+  }
+  .sp-graph-actions-close:hover { background: var(--cp-slate-200, #e2e8f0); }
+
+  /* ═══ Settings Panel ═══ */
+  .sp-settings {
+    height: 100%;
+    overflow-y: auto;
+    padding: 16px;
+  }
+
+  .sp-settings-group {
+    margin-bottom: 20px;
+  }
+
+  .sp-settings-group h3 {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--cp-slate-500, #64748b);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin: 0 0 10px;
+  }
+
+  .sp-setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--cp-slate-100, #f1f5f9);
+  }
+
+  .sp-setting-label {
+    font-size: 13px;
+    color: var(--cp-slate-700, #334155);
+    font-weight: 500;
+  }
+
+  .sp-setting-select {
+    padding: 5px 8px;
+    border: 1px solid var(--cp-slate-200, #e2e8f0);
+    border-radius: 8px;
+    font-size: 12.5px;
+    background: var(--cp-white, white);
+    color: var(--cp-slate-700, #334155);
+    outline: none;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .sp-setting-select:focus {
+    border-color: var(--cp-teal-400, #2dd4bf);
+  }
+
+  .sp-setting-field {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+  }
+
+  .sp-setting-input {
+    width: 100%;
+    padding: 6px 10px;
+    border: 1px solid var(--cp-slate-200, #e2e8f0);
+    border-radius: 8px;
+    font-size: 12.5px;
+    outline: none;
+    background: var(--cp-slate-50, #f8fafc);
+    font-family: inherit;
+    box-sizing: border-box;
+  }
+  .sp-setting-input:focus {
+    border-color: var(--cp-teal-400, #2dd4bf);
+    background: var(--cp-white, white);
+  }
+
+  .sp-toggle {
+    position: relative;
+    display: inline-flex;
+    cursor: pointer;
+  }
+  .sp-toggle input { display: none; }
+  .sp-toggle-track {
+    width: 36px;
+    height: 20px;
+    background: var(--cp-slate-200, #e2e8f0);
+    border-radius: 10px;
+    position: relative;
+    transition: background 200ms;
+  }
+  .sp-toggle input:checked + .sp-toggle-track {
+    background: var(--cp-teal-500, #14b8a6);
+  }
+  .sp-toggle-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 200ms;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  }
+  .sp-toggle input:checked + .sp-toggle-track .sp-toggle-thumb {
+    transform: translateX(16px);
   }
 </style>

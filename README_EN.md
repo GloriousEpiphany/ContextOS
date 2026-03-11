@@ -1,112 +1,211 @@
-# ContextPrompt AI v4.0
+<div align="center">
 
-<p align="center">
-  <img src="promo/contextprompt-ai.png" alt="ContextPrompt AI" width="440">
-</p>
+<img src="promo/contextprompt-ai.png" alt="ContextOS" width="440">
 
-**Intelligent Knowledge Management & AI Context Orchestration Chrome Extension** — Capture web content, build a personal knowledge graph, and seamlessly inject knowledge into any AI conversation via semantic search and the MCP protocol.
+# ContextOS
 
-[中文文档](./README.md)
+**Your browser is sitting on a goldmine of context. ContextOS mines it.**
+
+Capture web pages, build a personal knowledge graph with semantic search,
+and inject the right context into any AI conversation — all running locally in your browser.
+
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](./LICENSE)
+![Chrome MV3](https://img.shields.io/badge/Chrome-Manifest%20V3-brightgreen)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue)
+![Svelte 5](https://img.shields.io/badge/Svelte-5-orange)
+
+English · [中文](./README.md)
+
+</div>
 
 ---
 
-## Feature Overview
+## What It Does
 
-### Core Capabilities
+ContextOS is a Chrome extension that turns your browsing into a structured, searchable knowledge base — and makes that knowledge available to any AI you talk to.
 
-- **Knowledge Graph** — Automatically builds a knowledge network with semantic relations, tag overlap, and domain associations. Visualized with D3 force-directed graphs
-- **Hybrid Search** — Vector embeddings (all-MiniLM-L6-v2, 384 dims) + BM25 keyword search, fused with Reciprocal Rank Fusion (RRF)
-- **Three-Level AI Routing** — Chrome Gemini Nano (local) → Cloud API (OpenAI/Anthropic/DeepSeek/Qwen) → Rule-based NLP fallback
-- **Context Orchestration** — Automatically assembles knowledge graph + current page + user query into a structured context package with adaptive token budgeting
-- **Selection Toolbar** — Floating toolbar appears on text selection: Save to Knowledge Base / AI Summarize / Translate / Copy as Markdown
-- **MCP Protocol** — Exposes 5 MCP Tools via Native Messaging Host, callable by Claude Desktop / Cursor / etc.
-- **Workflow Engine** — Preset multi-step workflows for academic research, competitive analysis, code review — one-click execution
+- **Capture** any web page in one click (or automatically by URL pattern)
+- **Build** a knowledge graph with auto-discovered semantic relationships
+- **Search** with hybrid vector + keyword retrieval (384-dim embeddings, BM25, RRF fusion)
+- **Inject** assembled context into ChatGPT, Claude, Gemini, DeepSeek, and 8 more AI platforms
+- **Expose** your knowledge to Claude Desktop / Cursor via MCP protocol
 
-### Smart Capture
+Everything runs local-first. AI features are optional and bring-your-own-key.
 
-- One-click page capture (title, URL, main content, metadata, JSON-LD)
-- Right-click menu to save directly to knowledge graph
-- Batch capture all tabs in current window
-- AI chat history extraction (ChatGPT, Claude, Gemini, DeepSeek, and 10+ platforms)
-- Auto-capture by URL pattern with notification confirmation
-- Keyboard shortcuts: `Ctrl+Shift+C` capture / `Ctrl+Shift+P` generate prompt
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  Content Scripts                                        │
+│  ┌──────────┐  ┌──────────────────┐  ┌───────────────┐ │
+│  │ Capture  │  │ Selection Toolbar│  │ AI Injector   │ │
+│  │ 3 depths │  │ Save/Summarize/  │  │ 12 platforms  │ │
+│  │          │  │ Translate/Copy   │  │ Craft Prompt  │ │
+│  └────┬─────┘  └────────┬─────────┘  └───────┬───────┘ │
+└───────┼────────────────┼──────────────────┼─────────────┘
+        │                │                  │
+        ▼                ▼                  ▼
+┌─────────────────────────────────────────────────────────┐
+│  Background Service Worker (Message Hub)                │
+│  ┌──────────┐  ┌──────────┐  ┌────────────────────────┐│
+│  │ AI Router│  │ Knowledge│  │ Context Orchestrator   ││
+│  │ 3-level  │  │ Graph    │  │ Token budget + compress││
+│  │ fallback │  │ CRUD     │  │                        ││
+│  └──────────┘  └──────────┘  └────────────────────────┘│
+└─────────────────────────────────────────────────────────┘
+        │                │                  │
+        ▼                ▼                  ▼
+┌──────────────┐ ┌──────────────┐ ┌───────────────────┐
+│ Dexie.js     │ │ Offscreen    │ │ Native Host       │
+│ IndexedDB    │ │ Transformers │ │ MCP Bridge        │
+│ 5 tables     │ │ .js Embeddings│ │ JSON-RPC 2.0     │
+└──────────────┘ └──────────────┘ └───────────────────┘
+```
+
+---
+
+## Features
+
+### Knowledge Capture
+
+| Feature | Detail |
+|---------|--------|
+| One-click capture | Title, URL, content, meta, Open Graph, JSON-LD |
+| Three capture depths | Light (save tokens) · Standard · Deep (full content) |
+| Batch capture | All open tabs in one click |
+| AI chat extraction | ChatGPT, Claude, Gemini, DeepSeek, Qwen, Doubao, Poe, Perplexity, Copilot, HuggingChat, Mistral, Grok |
+| Selection toolbar | Select text → floating bar → Save / AI Summarize / Translate / Copy as Markdown |
+| Auto capture | URL pattern matching with notification |
+| Keyboard shortcuts | `Ctrl+Shift+C` capture · `Ctrl+Shift+P` generate prompt |
+| Right-click menu | Capture page / selection / link |
+
+### Knowledge Graph
+
+- Auto-tagging via NLP keyword extraction (TF-IDF scoring, EN + ZH stop words)
+- Vector embeddings: all-MiniLM-L6-v2 (384-dim), computed in-browser via Transformers.js offscreen document
+- Relationship discovery: semantic similarity, URL domain, tag overlap (Jaccard), temporal proximity
+- D3.js force-directed graph visualization with interactive node selection and actions (view / delete)
+- Hybrid search: vector similarity (60%) + BM25 keyword (40%), fused with Reciprocal Rank Fusion
 
 ### AI Integration
 
-| Provider | Models | Use Cases |
-|----------|--------|-----------|
-| OpenAI | gpt-4o, gpt-4o-mini | Summarization, translation, quality analysis |
-| Anthropic | Claude Sonnet 4, Claude Haiku 4 | Summarization, context fusion |
-| DeepSeek | deepseek-chat, deepseek-reasoner | Summarization, reasoning |
-| Qwen | qwen-turbo, qwen-plus, qwen-max | Summarization, translation |
-| Chrome Gemini Nano | Built-in | Local offline summarization (EN/ES/JA) |
-| Custom | Any OpenAI-compatible API | Self-hosted models |
+Three-level routing with automatic fallback:
 
-### MCP Ecosystem
+| Level | Engine | When |
+|-------|--------|------|
+| 1 | Chrome Gemini Nano | Available, supported language (EN/ES/JA) |
+| 2 | Cloud API | User-configured provider + API key |
+| 3 | Rule-based NLP | Always available, no API needed |
 
-Exposes extension capabilities as MCP tools via a Native Messaging Host (Node.js):
+Supported cloud providers:
+
+| Provider | Example Models |
+|----------|---------------|
+| OpenAI | gpt-4o, gpt-4o-mini |
+| Anthropic | Claude Sonnet, Claude Haiku |
+| DeepSeek | deepseek-chat, deepseek-reasoner |
+| Qwen | qwen-turbo, qwen-plus, qwen-max |
+| Custom | Any OpenAI-compatible endpoint |
+
+AI capabilities: summarization, translation, quality analysis, context fusion, prompt optimization.
+
+### Context Orchestration
+
+When you click "Craft Prompt" on an AI platform, ContextOS:
+
+1. Searches the knowledge graph for relevant nodes
+2. Includes current page context
+3. Allocates a token budget per section (model-aware limits)
+4. Compresses and formats into a structured context package
+5. Shows a preview panel, then inserts into the AI chat input
+
+### AI Platform Injection
+
+The "Craft Prompt" button is injected into 12 AI platforms:
+
+ChatGPT · Claude · Gemini · DeepSeek · Qwen · Doubao · Poe · Perplexity · Copilot · HuggingChat · Mistral · Grok
+
+Shadow DOM isolation ensures zero style conflicts. Can be toggled off in settings.
+
+### MCP Protocol
+
+Expose your knowledge base to external AI tools via Native Messaging Host:
 
 | Tool | Description |
 |------|-------------|
-| `search_knowledge` | Semantic search over the knowledge graph |
+| `search_knowledge` | Semantic search across the knowledge graph |
 | `get_context` | Assemble a context package for a target model |
 | `capture_page` | Capture the current browser tab |
 | `list_knowledge` | List recent knowledge nodes |
 | `get_stats` | Knowledge graph statistics |
 
+### Workflow Engine
+
+Predefined multi-step workflows:
+
+- **Academic Research**: Capture → Summarize → Search Knowledge → Generate Context
+- **Competitive Analysis**: Capture → Extract Features → Compare → Export Report
+- **Code Review**: Capture → Analyze → Generate Review Prompt
+- **Content Curation**: Capture → Summarize → Tag → Add to Knowledge
+
+### UI
+
+- **Popup**: Quick capture, context list, search, multi-select fusion, settings, history
+- **Side Panel**: Knowledge browser, D3 graph visualization, workflow execution, settings
+- **Onboarding**: Three-step guided tour for new users
+- **Themes**: System / Light / Dark, synced across popup and side panel
+- **i18n**: English + 中文, runtime switchable (no browser restart needed)
+
 ---
 
 ## Quick Start
 
-### Prerequisites
+### Requirements
 
-- Node.js >= 18
-- Chrome >= 120 (138+ recommended for Gemini Nano support)
-- npm or pnpm
+- Node.js ≥ 18
+- Chrome ≥ 120 (138+ recommended for Gemini Nano)
 
-### Installation & Development
+### Install & Build
 
 ```bash
-# Clone the repository
-git clone https://github.com/GloriousEpiphany/ContextOS.git contextprompt-ai
-cd contextprompt-ai
+git clone https://github.com/GloriousEpiphany/ContextOS.git
+cd ContextOS
 
-# Install dependencies
 npm install
-
-# Development mode (hot reload)
-npm run dev
-
-# Production build
-npm run build
-
-# Type checking
-npm run check
-
-# Package as zip
-npm run zip
+npm run dev      # Development with hot reload
+npm run build    # Production build
+npm run check    # Type checking
+npm run zip      # Package for distribution
 ```
 
 ### Load into Chrome
 
-1. Run `npm run build`
-2. Open `chrome://extensions`
-3. Enable "Developer mode"
-4. Click "Load unpacked"
-5. Select the `.output/chrome-mv3` directory
+1. `npm run build`
+2. Open `chrome://extensions` → enable Developer Mode
+3. "Load unpacked" → select `.output/chrome-mv3`
 
 ### Enable MCP Server (Optional)
 
+Requires Node.js installed and in your PATH.
+
 ```bash
-# Register Native Messaging Host
-# Windows:
+# Windows (may need Administrator)
 cd native-host && install.bat
 
-# macOS / Linux:
+# macOS / Linux
 cd native-host && chmod +x install.sh && ./install.sh
+```
 
-# MCP Server listens on http://127.0.0.1:19960 by default
-# Test with curl:
+The install script will prompt for your Extension ID (visible at `chrome://extensions` in Developer Mode), then auto-generate the runner script and manifest.
+
+After installation:
+1. Enable "MCP Server" in the extension settings
+2. The MCP server listens on `http://127.0.0.1:19960` (localhost only)
+
+```bash
+# Test it
 curl -X POST http://127.0.0.1:19960 \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
@@ -122,9 +221,10 @@ curl -X POST http://127.0.0.1:19960 \
 | Storage | Dexie.js (IndexedDB) + Chrome Storage API |
 | Search | MiniSearch (BM25) + Transformers.js (vector embeddings, CDN-loaded) |
 | Visualization | D3.js force-directed graph |
-| Styling | Tailwind CSS 4 |
+| Styling | Tailwind CSS 4 + CSS custom properties theming |
 | Protocol | MCP (JSON-RPC 2.0) + Chrome Native Messaging |
-| AI | Three-level routing: Gemini Nano → Cloud APIs → Rule NLP |
+| AI | Three-level router: Gemini Nano → Cloud APIs → Rule NLP |
+| Extension | Chrome Manifest V3, service worker architecture |
 
 ---
 
@@ -133,132 +233,90 @@ curl -X POST http://127.0.0.1:19960 \
 ```
 contextprompt-ai/
 ├── src/
-│   ├── types/index.ts                    # Global type definitions
 │   ├── entrypoints/
-│   │   ├── background.ts                # Service Worker (message hub)
-│   │   ├── capture.content.ts           # Page capture content script
-│   │   ├── selection-toolbar.content.ts  # Text selection toolbar
-│   │   ├── popup/                       # Popup UI (Svelte)
-│   │   ├── sidepanel/                   # Side Panel UI (Svelte)
-│   │   ├── onboarding/                  # Onboarding wizard
-│   │   └── offscreen/                   # Offscreen Document (embeddings)
+│   │   ├── background.ts                 # Service worker — message hub, 30+ handlers
+│   │   ├── capture.content.ts            # Page capture (3 depths, AI chat extraction)
+│   │   ├── selection-toolbar.content.ts   # Floating toolbar on text selection
+│   │   ├── injector.content.ts            # "Craft Prompt" button on 12 AI platforms
+│   │   ├── popup/App.svelte              # Extension popup UI
+│   │   ├── sidepanel/App.svelte          # Side panel (knowledge, graph, workflows, settings)
+│   │   ├── onboarding/App.svelte         # First-run guided tour
+│   │   └── offscreen/main.ts            # Offscreen doc for Transformers.js embeddings
 │   └── lib/
 │       ├── ai/
-│       │   ├── router.ts               # Three-level AI routing engine
-│       │   ├── cloud-engine.ts          # Multi-provider cloud AI
-│       │   ├── local-engine.ts          # Chrome Gemini Nano
-│       │   └── embeddings.ts            # Transformers.js vector embeddings
+│       │   ├── router.ts                # Three-level AI routing engine
+│       │   ├── cloud-engine.ts           # Multi-provider cloud AI (OpenAI/Anthropic/DeepSeek/Qwen)
+│       │   ├── local-engine.ts           # Chrome Gemini Nano integration
+│       │   └── embeddings.ts             # Transformers.js vector embeddings (all-MiniLM-L6-v2)
 │       ├── storage/
-│       │   ├── db.ts                    # Dexie database schema
-│       │   ├── vector-store.ts          # Vector store & cosine similarity search
-│       │   ├── knowledge-graph.ts       # Knowledge graph CRUD + relation discovery
-│       │   └── search.ts               # Hybrid search (RRF fusion)
+│       │   ├── db.ts                     # Dexie schema (5 tables, v3→v4 migration)
+│       │   ├── knowledge-graph.ts        # Knowledge graph CRUD + relationship discovery
+│       │   ├── search.ts                 # Hybrid search (vector + BM25, RRF fusion)
+│       │   └── vector-store.ts           # Vector storage + cosine similarity
 │       ├── context/
-│       │   ├── budget.ts               # Token budget management
-│       │   ├── compressor.ts           # Context compression
-│       │   └── orchestrator.ts         # Context orchestrator
+│       │   ├── orchestrator.ts           # Context assembly for AI prompts
+│       │   ├── budget.ts                 # Token budget management (model-aware)
+│       │   └── compressor.ts             # Context compression
 │       ├── mcp/
-│       │   ├── protocol.ts             # MCP protocol types
-│       │   ├── server-tools.ts         # MCP Server tool definitions
-│       │   └── client.ts              # MCP Client (call external servers)
+│       │   ├── protocol.ts              # MCP type definitions (JSON-RPC 2.0)
+│       │   ├── server-tools.ts           # 5 MCP tools exposed to external clients
+│       │   └── client.ts               # MCP client for calling external servers
 │       ├── workflow/
-│       │   ├── engine.ts              # Workflow execution engine
-│       │   └── templates.ts           # Preset workflow templates
+│       │   ├── engine.ts                # Multi-step workflow execution
+│       │   └── templates.ts              # Predefined workflow templates
 │       ├── components/
-│       │   ├── KnowledgeGraph.svelte  # D3 knowledge graph visualization
-│       │   └── WorkflowPanel.svelte   # Workflow management panel
-│       ├── nlp-engine.ts              # Rule-based NLP
-│       └── prompt/templates.ts        # Prompt templates
+│       │   ├── KnowledgeGraph.svelte     # D3 force-directed graph component
+│       │   └── WorkflowPanel.svelte      # Workflow management UI
+│       ├── i18n.ts                       # Runtime i18n (locale switching without restart)
+│       ├── nlp-engine.ts                 # Rule-based NLP (keywords, summarization, language detection)
+│       └── prompt/templates.ts           # Prompt template engine
 ├── native-host/
-│   ├── index.js                       # Native Messaging Host (MCP bridge)
-│   ├── manifest.json                  # Host manifest
-│   ├── install.bat                    # Windows registration script
-│   └── install.sh                     # macOS/Linux registration script
-├── wxt.config.ts                      # WXT build configuration
+│   ├── index.js                          # MCP bridge (Node.js HTTP ↔ Native Messaging)
+│   ├── manifest.json                     # Native host registration
+│   ├── install.bat                       # Windows installer
+│   └── install.sh                        # macOS/Linux installer
+├── _locales/
+│   ├── en/messages.json                  # English (185 strings)
+│   └── zh/messages.json                  # 中文 (185 strings)
+├── wxt.config.ts                         # WXT build config + manifest
 ├── package.json
 └── tsconfig.json
 ```
 
 ---
 
-## Usage
-
-### Basic Usage
-
-1. **Capture Context** — Visit a webpage → Click the extension icon → "Capture Current Page"
-2. **Text Selection** — Select text on any page → Floating toolbar appears → Save / Summarize / Translate / Copy
-3. **Knowledge Search** — Type in the side panel search box for hybrid semantic + keyword search
-4. **Context Orchestration** — Automatically assembles knowledge graph context for AI conversations
-5. **Run Workflows** — Side panel Workflow tab → Select a preset → Execute with one click
-
-### Keyboard Shortcuts
-
-| Action | Shortcut |
-|--------|----------|
-| Capture current page | `Ctrl+Shift+C` / `Cmd+Shift+C` |
-| Generate prompt | `Ctrl+Shift+P` / `Cmd+Shift+P` |
-
-### AI Configuration
-
-1. Click extension icon → Settings
-2. Enable AI → Select provider → Enter API Key
-3. Optional: Enable auto-summarization, configure MCP Server
-
----
-
 ## Privacy
 
 ### Local Mode (Default)
-- All data stored locally in the browser (IndexedDB + Chrome Storage)
-- Vector embeddings computed in-browser (Transformers.js; model downloaded from CDN on first use, then cached locally)
-- Apart from the initial model download, no external network requests and no data collection
 
-### AI Enhanced Mode (Optional)
-- Content sent to selected AI API only when enabled
-- API keys stored locally
-- Can be disabled at any time to return to pure local mode
+- All data stored in browser-local IndexedDB + Chrome Storage
+- Vector embeddings computed in-browser (Transformers.js; model downloaded from CDN on first use, cached thereafter)
+- Zero external requests beyond the embedding model download
+- No telemetry, no analytics, no data collection
 
-### MCP Server (Optional)
-- Listens only on `127.0.0.1` (localhost), not exposed to the network
+### AI-Enhanced Mode (Opt-in)
+
+- Content sent only to the provider you choose, only when you trigger an AI action
+- API keys stored locally in Chrome Storage
+- Can be disabled at any time — falls back to pure local mode
+
+### MCP Server (Opt-in)
+
+- Listens on `127.0.0.1` only — not exposed to the network
 - Requires manual Native Messaging Host installation
-
----
-
-## Publishing
-
-### Chrome Web Store
-1. Run `npm run zip` to generate a `.zip` package
-2. Visit [Chrome Developer Dashboard](https://chrome.google.com/webstore/devconsole)
-3. Upload the zip, fill in store listing details, and submit for review
-
-### Edge Add-ons
-WXT supports Edge builds: `npx wxt build --browser edge`, then submit to the [Edge Developer Center](https://partner.microsoft.com/dashboard/microsoftedge/)
-
-### Manual Distribution
-Distribute the `.output/chrome-mv3` directory or the `.zip` file directly to users for loading via Developer Mode.
-
----
-
-## Build Scripts
-
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Development mode (hot reload + auto-refresh) |
-| `npm run build` | Production build to `.output/chrome-mv3` |
-| `npm run check` | TypeScript + Svelte type checking |
-| `npm run zip` | Package as a publishable `.zip` |
 
 ---
 
 ## License
 
-This project is licensed under the [GNU Affero General Public License v3.0 (AGPL-3.0)](./LICENSE).
+[GNU Affero General Public License v3.0 (AGPL-3.0)](./LICENSE)
 
-In brief:
-- You are free to use, modify, and distribute this software
-- If you modify it and provide it as a network service, you must release your modified source code
-- All derivative works must be licensed under the same AGPL-3.0
+You can freely use, modify, and distribute this software. If you modify it and provide it as a network service, you must release the modified source under the same license.
 
 ---
 
-Made with ContextPrompt AI
+<div align="center">
+
+Built with Svelte, TypeScript, and a mass of context.
+
+</div>

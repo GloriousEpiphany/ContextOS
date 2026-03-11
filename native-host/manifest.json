@@ -1,9 +1,9 @@
 {
   "name": "com.contextprompt.ai",
   "description": "ContextPrompt AI Native Messaging Host for MCP protocol bridge",
-  "path": "index.js",
+  "path": "PLACEHOLDER — run install.bat or install.sh to generate with absolute path",
   "type": "stdio",
   "allowed_origins": [
-    "chrome-extension://__MSG_@@extension_id__/"
+    "chrome-extension://YOUR_EXTENSION_ID/"
   ]
 }

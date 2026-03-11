@@ -72,8 +72,8 @@
     searchTimeout = setTimeout(async () => {
       loading = true;
       try {
-        const results = await sendMessage('searchKnowledge', { query: searchQuery });
-        searchResults = results || [];
+        const response = await sendMessage('searchKnowledge', { query: searchQuery });
+        searchResults = response?.results || response || [];
       } catch {
         searchResults = [];
       } finally {
@@ -129,13 +129,19 @@
   }
 
   async function deleteNode(node: KnowledgeNode) {
+    // Delete from chrome.storage.local (legacy contexts)
     if (node.contextId) {
       await sendMessage('deleteContext', { id: node.contextId });
+    }
+    // Delete from Dexie knowledge graph (nodes, embeddings, relations)
+    if (node.id) {
+      await sendMessage('deleteKnowledgeNode', { id: node.id });
     }
     showNotification('Node removed');
     if (selectedNode?.id === node.id) selectedNode = null;
     await loadNodes();
     await loadGraphData();
+    await loadStats();
   }
 
   async function exportKnowledge() {
@@ -156,8 +162,30 @@
 
   // ── Data Loading ──
   async function loadNodes() {
-    const result = (await sendMessage('getAllContexts')) || [];
-    nodes = result;
+    try {
+      // Primary: load from knowledge graph (Dexie)
+      const kgResult = await sendMessage('getAllKnowledgeNodes');
+      const kgNodes = kgResult?.nodes || [];
+
+      if (kgNodes.length > 0) {
+        // Map knowledge graph fields to display format
+        nodes = kgNodes.map((n: any) => ({
+          ...n,
+          timestamp: n.createdAt || n.timestamp || '',
+          summary: n.summary || '',
+          description: n.description || n.summary || '',
+        }));
+        return;
+      }
+
+      // Fallback: load from chrome.storage.local (legacy contexts)
+      const contexts = (await sendMessage('getAllContexts')) || [];
+      nodes = contexts;
+    } catch {
+      // Last resort fallback
+      const contexts = (await sendMessage('getAllContexts')) || [];
+      nodes = contexts;
+    }
   }
 
   async function loadGraphData() {
@@ -174,10 +202,11 @@
     try {
       const result = await sendMessage('getKnowledgeStats');
       if (result) {
+        const data = result?.stats || result;
         stats = {
-          nodes: result.totalNodes || 0,
-          relations: result.totalRelations || 0,
-          tags: result.uniqueTags || 0,
+          nodes: data?.nodeCount || data?.totalNodes || 0,
+          relations: data?.relationCount || data?.totalRelations || 0,
+          tags: data?.embeddingCount || data?.uniqueTags || 0,
         };
       }
     } catch { /* ignore */ }
@@ -286,10 +315,66 @@
   <!-- Main Content -->
   <div class="sp-main">
     {#if tab === 'knowledge'}
-      <!-- Knowledge List + Detail -->
-      <div class="sp-split">
-        <!-- Left: Node List -->
-        <div class="sp-left">
+      <!-- Knowledge: Single-column navigation layout -->
+      {#if selectedNode}
+        <!-- Detail View (full width) -->
+        <div class="sp-detail">
+          <div class="sp-detail-head">
+            <button class="sp-detail-back" onclick={clearSelection}>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 2L4 7l5 5"/>
+              </svg>
+              Back
+            </button>
+            <button class="sp-detail-del" onclick={() => deleteNode(selectedNode)} title="Delete this node">
+              <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 4h10M5 4V2.5a.5.5 0 01.5-.5h3a.5.5 0 01.5.5V4M11 4v7.5a1 1 0 01-1 1H4a1 1 0 01-1-1V4"/>
+              </svg>
+            </button>
+          </div>
+          <div class="sp-detail-body">
+            <h2 class="sp-detail-title">{selectedNode.title}</h2>
+            {#if selectedNode.url}
+              <a href={selectedNode.url} target="_blank" rel="noopener" class="sp-detail-url">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 1H2a1 1 0 00-1 1v8a1 1 0 001 1h8a1 1 0 001-1V7"/>
+                  <path d="M7 1h4v4M11 1L5 7"/>
+                </svg>
+                {selectedNode.url}
+              </a>
+            {/if}
+            <div class="sp-detail-meta">
+              <span>{formatDate(selectedNode.timestamp)}</span>
+              {#if selectedNode.accessCount > 0}
+                <span>{selectedNode.accessCount} views</span>
+              {/if}
+            </div>
+            {#if selectedNode.tags?.length > 0}
+              <div class="sp-detail-tags">
+                {#each selectedNode.tags as tag}
+                  <span class="sp-tag">{tag}</span>
+                {/each}
+              </div>
+            {/if}
+            <div class="sp-detail-sections">
+              {#if selectedNode.aiSummary || selectedNode.summary || selectedNode.description}
+                <div class="sp-section">
+                  <h3>Summary</h3>
+                  <p>{selectedNode.aiSummary || selectedNode.summary || selectedNode.description}</p>
+                </div>
+              {/if}
+              {#if selectedNode.content}
+                <div class="sp-section">
+                  <h3>Content</h3>
+                  <p class="sp-content-text">{selectedNode.content}</p>
+                </div>
+              {/if}
+            </div>
+          </div>
+        </div>
+      {:else}
+        <!-- Node List View (full width) -->
+        <div class="sp-list">
           <div class="sp-list-info">
             <span>{displayedNodes.length} {displayedNodes.length === 1 ? 'node' : 'nodes'}</span>
           </div>
@@ -313,7 +398,6 @@
               {#each displayedNodes as node}
                 <button
                   class="sp-node"
-                  class:selected={selectedNode?.id === node.id}
                   onclick={() => selectNode(node)}
                 >
                   <div class="sp-node-title">{node.title || 'Untitled'}</div>
@@ -334,77 +418,7 @@
             {/if}
           </div>
         </div>
-
-        <!-- Right: Detail -->
-        <div class="sp-right">
-          {#if selectedNode}
-            <div class="sp-detail">
-              <div class="sp-detail-head">
-                <button class="sp-detail-back" onclick={clearSelection}>
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M9 2L4 7l5 5"/>
-                  </svg>
-                  Back
-                </button>
-                <button class="sp-detail-del" onclick={() => deleteNode(selectedNode)} title="Delete this node">
-                  <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M2 4h10M5 4V2.5a.5.5 0 01.5-.5h3a.5.5 0 01.5.5V4M11 4v7.5a1 1 0 01-1 1H4a1 1 0 01-1-1V4"/>
-                  </svg>
-                </button>
-              </div>
-              <div class="sp-detail-body">
-                <h2 class="sp-detail-title">{selectedNode.title}</h2>
-                {#if selectedNode.url}
-                  <a href={selectedNode.url} target="_blank" rel="noopener" class="sp-detail-url">
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M5 1H2a1 1 0 00-1 1v8a1 1 0 001 1h8a1 1 0 001-1V7"/>
-                      <path d="M7 1h4v4M11 1L5 7"/>
-                    </svg>
-                    {selectedNode.url}
-                  </a>
-                {/if}
-                <div class="sp-detail-meta">
-                  <span>{formatDate(selectedNode.timestamp)}</span>
-                  {#if selectedNode.accessCount > 0}
-                    <span>{selectedNode.accessCount} views</span>
-                  {/if}
-                </div>
-                {#if selectedNode.tags?.length > 0}
-                  <div class="sp-detail-tags">
-                    {#each selectedNode.tags as tag}
-                      <span class="sp-tag">{tag}</span>
-                    {/each}
-                  </div>
-                {/if}
-                <div class="sp-detail-sections">
-                  {#if selectedNode.aiSummary || selectedNode.summary || selectedNode.description}
-                    <div class="sp-section">
-                      <h3>Summary</h3>
-                      <p>{selectedNode.aiSummary || selectedNode.summary || selectedNode.description}</p>
-                    </div>
-                  {/if}
-                  {#if selectedNode.content}
-                    <div class="sp-section">
-                      <h3>Content</h3>
-                      <p class="sp-content-text">{selectedNode.content}</p>
-                    </div>
-                  {/if}
-                </div>
-              </div>
-            </div>
-          {:else}
-            <div class="sp-detail-placeholder">
-              <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-                <rect x="8" y="6" width="24" height="28" rx="3" stroke="var(--cp-slate-300)" stroke-width="1.2"/>
-                <line x1="13" y1="14" x2="27" y2="14" stroke="var(--cp-slate-200)" stroke-width="1.2" stroke-linecap="round"/>
-                <line x1="13" y1="20" x2="27" y2="20" stroke="var(--cp-slate-200)" stroke-width="1.2" stroke-linecap="round"/>
-                <line x1="13" y1="26" x2="22" y2="26" stroke="var(--cp-slate-200)" stroke-width="1.2" stroke-linecap="round"/>
-              </svg>
-              <p>Select a node to view details</p>
-            </div>
-          {/if}
-        </div>
-      </div>
+      {/if}
 
     {:else if tab === 'graph'}
       <!-- Knowledge Graph Visualization -->
@@ -606,19 +620,11 @@
     overflow: hidden;
   }
 
-  /* ═══ Split View ═══ */
-  .sp-split {
-    display: flex;
-    height: 100%;
-  }
-
-  /* Left Panel */
-  .sp-left {
-    width: 260px;
-    min-width: 220px;
-    border-right: 1px solid var(--cp-slate-200, #e2e8f0);
+  /* ═══ List View (single column) ═══ */
+  .sp-list {
     display: flex;
     flex-direction: column;
+    height: 100%;
     background: white;
   }
 
@@ -664,11 +670,6 @@
     color: inherit;
   }
   .sp-node:hover { background: var(--cp-slate-50, #f8fafc); }
-  .sp-node.selected {
-    background: var(--cp-teal-50, #f0fdfa);
-    border-left: 3px solid var(--cp-teal-500, #14b8a6);
-    padding-left: 9px;
-  }
 
   .sp-node-title {
     font-weight: 600;
@@ -713,15 +714,7 @@
     display: block;
   }
 
-  /* Right Panel */
-  .sp-right {
-    flex: 1;
-    min-width: 0;
-    overflow-y: auto;
-    background: var(--cp-slate-50, #f8fafc);
-  }
-
-  /* Detail */
+  /* ═══ Detail View (single column, full width) ═══ */
   .sp-detail {
     display: flex;
     flex-direction: column;
@@ -838,18 +831,6 @@
   .sp-content-text {
     white-space: pre-wrap;
     word-break: break-word;
-  }
-
-  /* Detail Placeholder */
-  .sp-detail-placeholder {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    color: var(--cp-slate-400, #94a3b8);
-    gap: 12px;
-    font-size: 13px;
   }
 
   /* ═══ Graph View ═══ */

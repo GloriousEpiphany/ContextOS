@@ -286,6 +286,8 @@ export default defineBackground(() => {
         case 'getRelatedNodes': return await getRelatedNodesAction(data);
         case 'getKnowledgeGraphData': return await getKnowledgeGraphData();
         case 'getKnowledgeStats': return await getKnowledgeStats();
+        case 'getAllKnowledgeNodes': return await getAllKnowledgeNodes();
+        case 'deleteKnowledgeNode': return await deleteKnowledgeNode(data.id);
 
         // v4 Phase 3: Capture & Orchestration
         case 'captureSelection':
@@ -430,6 +432,9 @@ export default defineBackground(() => {
 
       // Auto AI summarization (non-blocking)
       autoSummarizeContext(newContext.id).catch(() => {});
+
+      // Sync to Knowledge Graph (non-blocking)
+      syncToKnowledgeGraph(newContext).catch(() => {});
 
       return { success: true, context: newContext };
     } catch (error) {
@@ -823,6 +828,34 @@ export default defineBackground(() => {
     return { success: true, tags: extractKeywords(content, 5) };
   }
 
+  // ==================== Context → Knowledge Graph Sync ====================
+
+  async function syncToKnowledgeGraph(context: any) {
+    try {
+      const kg = await getKnowledgeGraph();
+      await kg.addFromContext({
+        id: context.id,
+        timestamp: context.timestamp,
+        title: context.title || 'Untitled',
+        url: context.url || '',
+        selection: context.selection || '',
+        description: context.description || '',
+        mainContent: context.mainContent || '',
+        ogData: context.ogData || {},
+        structuredData: context.structuredData || {},
+        chatContent: context.chatContent || '',
+        isPrivateLink: context.isPrivateLink || false,
+        platformName: context.platformName || '',
+        captureDepth: context.captureDepth || 'standard',
+        notes: context.notes || '',
+        tags: context.tags || [],
+        aiSummary: context.aiSummary || '',
+      });
+    } catch {
+      // Non-blocking: knowledge graph sync failure should not break core flow
+    }
+  }
+
   // ==================== v4: Knowledge Graph ====================
 
   let _knowledgeGraph: import('../lib/storage/knowledge-graph').KnowledgeGraph | null = null;
@@ -880,6 +913,26 @@ export default defineBackground(() => {
       const kg = await getKnowledgeGraph();
       const stats = await kg.getStats();
       return { success: true, stats };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  }
+
+  async function getAllKnowledgeNodes() {
+    try {
+      const { db: kgDb } = await import('../lib/storage/db');
+      const nodes = await kgDb.knowledgeNodes.orderBy('createdAt').reverse().toArray();
+      return { success: true, nodes };
+    } catch (error) {
+      return { success: false, error: (error as Error).message, nodes: [] };
+    }
+  }
+
+  async function deleteKnowledgeNode(nodeId: number) {
+    try {
+      const kg = await getKnowledgeGraph();
+      await kg.deleteNode(nodeId);
+      return { success: true };
     } catch (error) {
       return { success: false, error: (error as Error).message };
     }

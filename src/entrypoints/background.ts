@@ -1006,7 +1006,13 @@ export default defineBackground(() => {
   }
 
   async function executeWorkflowAction(data: any) {
-    const { workflowEngine } = await import('../lib/workflow/engine');
+    const { workflowEngine, setDispatcher } = await import('../lib/workflow/engine');
+
+    // Wire up the dispatcher so the engine can call background handlers directly
+    // (MV3 service workers cannot chrome.runtime.sendMessage to themselves)
+    setDispatcher((msg: { action: string; data?: unknown }) =>
+      handleMessage(msg as { action: string; data?: any }, {} as chrome.runtime.MessageSender),
+    );
 
     // Ensure workflows are loaded
     if (workflowEngine.getWorkflows().length === 0) {

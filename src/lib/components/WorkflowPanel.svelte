@@ -339,7 +339,7 @@
     padding: 14px;
     border: 1px solid var(--cp-slate-100, #f1f5f9);
     border-radius: 12px;
-    background: white;
+    background: var(--cp-white, white);
     cursor: pointer;
     margin-bottom: 8px;
     transition: all 200ms;
@@ -494,7 +494,7 @@
 
   .wf-tl-step.failed .wf-tl-circle {
     background: var(--cp-danger, #ef4444);
-    border-color: #fca5a5;
+    border-color: var(--cp-danger, #ef4444);
     color: white;
   }
 
@@ -579,8 +579,8 @@
   }
 
   .wf-result-err {
-    background: #fef2f2;
-    border-color: #fecaca;
+    background: var(--cp-danger-light, #fee2e2);
+    border-color: var(--cp-danger, #ef4444);
   }
 
   .wf-result-head {
@@ -592,11 +592,11 @@
     color: var(--cp-teal-700, #0f766e);
   }
 
-  .wf-result-err .wf-result-head { color: #dc2626; }
+  .wf-result-err .wf-result-head { color: var(--cp-danger, #ef4444); }
 
   .wf-result-error {
     font-size: 12px;
-    color: #dc2626;
+    color: var(--cp-danger, #ef4444);
     margin: 6px 0 0;
     line-height: 1.4;
   }
@@ -615,7 +615,7 @@
   .wf-result-data pre {
     margin: 8px 0 0;
     padding: 10px;
-    background: white;
+    background: var(--cp-white, white);
     border-radius: 8px;
     font-size: 11px;
     overflow-x: auto;
@@ -631,7 +631,7 @@
   .wf-new-editor { padding: 12px; }
   .wf-new-input {
     width: 100%; padding: 8px 10px; border: 1px solid var(--cp-slate-200, #e2e8f0); border-radius: 8px;
-    font-size: 13px; outline: none; background: white; margin-bottom: 8px; font-family: inherit; box-sizing: border-box;
+    font-size: 13px; outline: none; background: var(--cp-white, white); margin-bottom: 8px; font-family: inherit; box-sizing: border-box;
   }
   .wf-new-input:focus { border-color: var(--cp-teal-400, #2dd4bf); }
   .wf-new-actions { display: flex; gap: 8px; align-items: center; }
@@ -639,8 +639,8 @@
   /* Delete button in detail view */
   .wf-del-btn {
     display: flex; align-items: center; justify-content: center; width: 30px; height: 30px;
-    border: 1px solid var(--cp-slate-200, #e2e8f0); border-radius: 8px; background: white;
+    border: 1px solid var(--cp-slate-200, #e2e8f0); border-radius: 8px; background: var(--cp-white, white);
     cursor: pointer; color: var(--cp-slate-400, #94a3b8); transition: all 150ms;
   }
-  .wf-del-btn:hover { color: var(--cp-danger, #ef4444); border-color: var(--cp-danger, #ef4444); background: #fef2f2; }
+  .wf-del-btn:hover { color: var(--cp-danger, #ef4444); border-color: var(--cp-danger, #ef4444); background: var(--cp-danger-light, #fee2e2); }
 </style>

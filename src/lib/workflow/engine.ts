@@ -1,9 +1,31 @@
 /**
  * ContextPrompt AI v4.0 — Workflow Engine
  * Executes multi-step workflows that chain capture, AI, and knowledge operations.
+ *
+ * NOTE: This engine runs inside the background service worker.
+ * It uses a dispatcher function (injected via setDispatcher) instead of
+ * chrome.runtime.sendMessage, because MV3 service workers cannot send
+ * messages to themselves.
  */
 
 import type { Workflow, WorkflowExecution, WorkflowStep } from '@/types/index';
+
+// ----------------------------------------------------------------------------
+// Message Dispatcher — set by background.ts at init time
+// ----------------------------------------------------------------------------
+
+type Dispatcher = (message: { action: string; data?: unknown }) => Promise<unknown>;
+
+let _dispatch: Dispatcher = async () => {
+  throw new Error('Workflow dispatcher not initialized. Call setDispatcher() first.');
+};
+
+/**
+ * Called by background.ts to wire up the engine to the background's handleMessage.
+ */
+export function setDispatcher(fn: Dispatcher): void {
+  _dispatch = fn;
+}
 
 // ----------------------------------------------------------------------------
 // Step Executors
@@ -18,9 +40,7 @@ async function executeCapture(
   _step: WorkflowStep,
   input: Record<string, unknown>,
 ): Promise<Record<string, unknown>> {
-  const response = await chrome.runtime.sendMessage({
-    action: 'getAllContexts',
-  });
+  const response = await _dispatch({ action: 'getAllContexts' });
   const contexts = Array.isArray(response) ? response : [];
   const latest = contexts[0] || null;
   return { ...input, capturedContext: latest, contexts };
@@ -38,10 +58,10 @@ async function executeSummarize(
 
   if (!content) return { ...input, summary: '' };
 
-  const response = await chrome.runtime.sendMessage({
+  const response = (await _dispatch({
     action: 'summarizeWithAI',
     data: { content, maxLength: 500 },
-  });
+  })) as { summary?: string } | null;
 
   return { ...input, summary: response?.summary || '' };
 }
@@ -58,10 +78,10 @@ async function executeSearchKnowledge(
 
   if (!query) return { ...input, knowledgeResults: [] };
 
-  const response = await chrome.runtime.sendMessage({
+  const response = (await _dispatch({
     action: 'searchKnowledge',
     data: { query },
-  });
+  })) as { results?: unknown[] } | null;
 
   return { ...input, knowledgeResults: response?.results || [] };
 }
@@ -76,7 +96,7 @@ async function executeGeneratePrompt(
     (input.summary as string) ||
     '';
 
-  const response = await chrome.runtime.sendMessage({
+  const response = await _dispatch({
     action: 'assembleContext',
     data: { query, model },
   });
@@ -88,7 +108,6 @@ async function executeExport(
   _step: WorkflowStep,
   input: Record<string, unknown>,
 ): Promise<Record<string, unknown>> {
-  // Collect all workflow results into a report
   const report = {
     summary: input.summary || '',
     knowledgeResults: input.knowledgeResults || [],
@@ -114,38 +133,22 @@ const STEP_EXECUTORS: Record<string, StepExecutor> = {
 export class WorkflowEngine {
   private workflows: Map<string, Workflow> = new Map();
 
-  /**
-   * Register a workflow.
-   */
   addWorkflow(workflow: Workflow): void {
     this.workflows.set(workflow.id, workflow);
   }
 
-  /**
-   * Remove a workflow.
-   */
   removeWorkflow(id: string): void {
     this.workflows.delete(id);
   }
 
-  /**
-   * Get all registered workflows.
-   */
   getWorkflows(): Workflow[] {
     return Array.from(this.workflows.values());
   }
 
-  /**
-   * Get a workflow by ID.
-   */
   getWorkflow(id: string): Workflow | undefined {
     return this.workflows.get(id);
   }
 
-  /**
-   * Execute a workflow step-by-step.
-   * Each step receives the accumulated output from all previous steps.
-   */
   async execute(
     workflow: Workflow,
     initialContext: Record<string, unknown> = {},

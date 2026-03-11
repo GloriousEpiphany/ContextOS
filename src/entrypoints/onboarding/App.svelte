@@ -220,7 +220,7 @@
   .onboarding-card {
     width: 100%;
     max-width: 640px;
-    background: white;
+    background: var(--cp-white, white);
     border-radius: var(--radius-xl, 18px);
     box-shadow: var(--shadow-xl, 0 20px 25px -5px rgba(0, 0, 0, 0.1));
     padding: 40px;
@@ -410,7 +410,7 @@
     border-radius: var(--radius-sm, 6px);
     font-size: 14px;
     font-family: var(--cp-font-sans);
-    background: white;
+    background: var(--cp-white, white);
     color: var(--cp-slate-800, #1e293b);
     outline: none;
     box-sizing: border-box;

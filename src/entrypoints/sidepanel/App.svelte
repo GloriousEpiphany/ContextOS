@@ -308,8 +308,11 @@
   }
 
   // ── Theme ──
+  let _savedTheme = $state<string>('system');
+
   function applyTheme(theme?: string) {
-    const resolved = theme || 'system';
+    const resolved = theme || _savedTheme || 'system';
+    _savedTheme = resolved;
     if (resolved === 'system') {
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
@@ -328,7 +331,17 @@
     } catch {
       applyTheme();
     }
+    // Re-evaluate system theme on OS change (only matters when theme === 'system')
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => applyTheme());
+    // Listen for settings changes from popup (e.g. user toggles dark mode)
+    chrome.storage.onChanged.addListener((changes) => {
+      if (changes.settings?.newValue) {
+        const newTheme = changes.settings.newValue.theme;
+        if (newTheme && newTheme !== _savedTheme) {
+          applyTheme(newTheme);
+        }
+      }
+    });
   });
 </script>
 
@@ -739,7 +752,7 @@
     display: flex;
     gap: 2px;
     padding: 8px 16px 0;
-    background: white;
+    background: var(--cp-white, white);
     border-bottom: 1px solid var(--cp-slate-200, #e2e8f0);
     flex-shrink: 0;
   }
@@ -769,7 +782,7 @@
   /* ═══ Search ═══ */
   .sp-search {
     padding: 10px 16px;
-    background: white;
+    background: var(--cp-white, white);
     border-bottom: 1px solid var(--cp-slate-100, #f1f5f9);
     flex-shrink: 0;
   }
@@ -801,7 +814,7 @@
   }
   .sp-search-input:focus {
     border-color: var(--cp-teal-400, #2dd4bf);
-    background: white;
+    background: var(--cp-white, white);
     box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.08);
   }
 
@@ -845,7 +858,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: white;
+    background: var(--cp-white, white);
   }
 
   .sp-list-info {
@@ -947,7 +960,7 @@
     justify-content: space-between;
     padding: 8px 16px;
     border-bottom: 1px solid var(--cp-slate-200, #e2e8f0);
-    background: white;
+    background: var(--cp-white, white);
     flex-shrink: 0;
   }
 
@@ -974,7 +987,7 @@
     height: 28px;
     border: 1px solid var(--cp-slate-200, #e2e8f0);
     border-radius: 6px;
-    background: white;
+    background: var(--cp-white, white);
     cursor: pointer;
     color: var(--cp-slate-400, #94a3b8);
     transition: all 150ms;
@@ -982,7 +995,7 @@
   .sp-detail-del:hover {
     color: var(--cp-danger, #ef4444);
     border-color: var(--cp-danger, #ef4444);
-    background: #fef2f2;
+    background: var(--cp-danger-light, #fee2e2);
   }
 
   .sp-detail-body {
@@ -1070,7 +1083,7 @@
     display: flex;
     gap: 8px;
     padding: 10px 16px;
-    background: white;
+    background: var(--cp-white, white);
     border-top: 1px solid var(--cp-slate-200, #e2e8f0);
     flex-shrink: 0;
   }
@@ -1082,7 +1095,7 @@
     padding: 8px 14px;
     border: 1px solid var(--cp-slate-200, #e2e8f0);
     border-radius: 10px;
-    background: white;
+    background: var(--cp-white, white);
     color: var(--cp-slate-600, #475569);
     font-size: 13px;
     font-weight: 500;
@@ -1156,7 +1169,7 @@
     padding: 5px 10px;
     border: 1px solid var(--cp-slate-200, #e2e8f0);
     border-radius: 8px;
-    background: white;
+    background: var(--cp-white, white);
     color: var(--cp-slate-600, #475569);
     font-size: 12px;
     font-weight: 500;
@@ -1212,7 +1225,7 @@
     padding: 3px 10px;
     border: 1px solid var(--cp-slate-200, #e2e8f0);
     border-radius: 6px;
-    background: white;
+    background: var(--cp-white, white);
     color: var(--cp-slate-500, #64748b);
     font-size: 11px;
     font-weight: 500;
@@ -1227,7 +1240,7 @@
 
   /* ═══ Assemble Panel ═══ */
   .sp-assemble-panel {
-    background: white;
+    background: var(--cp-white, white);
     border-top: 1px solid var(--cp-slate-200, #e2e8f0);
     padding: 12px 16px;
     flex-shrink: 0;
@@ -1279,7 +1292,7 @@
   }
   .sp-assemble-input:focus {
     border-color: var(--cp-teal-400, #2dd4bf);
-    background: white;
+    background: var(--cp-white, white);
   }
 
   .sp-assemble-go {

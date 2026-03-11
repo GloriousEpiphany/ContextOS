@@ -12,6 +12,8 @@
   let loading = $state(false);
   let notification = $state<{ text: string; type: string } | null>(null);
   let stats = $state<{ nodes: number; relations: number; tags: number }>({ nodes: 0, relations: 0, tags: 0 });
+  let aiStatus = $state<{ enabled: boolean; engine: string }>({ enabled: false, engine: 'Off' });
+  let summarizingId = $state<string | null>(null);
 
   // ── Computed ──
   let filteredContexts = $derived(
@@ -80,8 +82,9 @@
     loading = true;
     try {
       const result = await sendMessage('captureBatchTabs');
-      if (result?.count > 0) {
-        showNotification(`Captured ${result.count} pages`);
+      const count = result?.results?.filter((r: any) => r.success).length || 0;
+      if (count > 0) {
+        showNotification(`Captured ${count} pages`);
         await loadContexts();
         await loadStats();
       } else {
@@ -145,6 +148,36 @@
 
   async function loadSettings() {
     settings = (await sendMessage('getSettings')) || {};
+    // Compute AI status from settings
+    if (settings.aiEnabled) {
+      aiStatus = { enabled: true, engine: 'Cloud' };
+    } else if (settings.localAiEnabled) {
+      aiStatus = { enabled: true, engine: 'Local' };
+    } else {
+      aiStatus = { enabled: false, engine: 'Off' };
+    }
+  }
+
+  async function summarizeCard(id: string) {
+    summarizingId = id;
+    try {
+      const result = await sendMessage('summarizeContext', { id });
+      if (result?.success && result.summary) {
+        // Update the context in local state
+        const idx = contexts.findIndex((c) => c.id === id);
+        if (idx !== -1) {
+          contexts[idx] = { ...contexts[idx], aiSummary: result.summary };
+          contexts = [...contexts]; // trigger reactivity
+        }
+        showNotification('AI summary generated');
+      } else {
+        showNotification(result?.error || 'Summarize failed', 'error');
+      }
+    } catch {
+      showNotification('Summarize failed', 'error');
+    } finally {
+      summarizingId = null;
+    }
   }
 
   async function loadHistory() {
@@ -155,10 +188,11 @@
     try {
       const result = await sendMessage('getKnowledgeStats');
       if (result) {
+        const data = result?.stats || result;
         stats = {
-          nodes: result.totalNodes || 0,
-          relations: result.totalRelations || 0,
-          tags: result.uniqueTags || 0,
+          nodes: data?.nodeCount || data?.totalNodes || 0,
+          relations: data?.relationCount || data?.totalRelations || 0,
+          tags: data?.embeddingCount || data?.uniqueTags || 0,
         };
       }
     } catch { /* ignore */ }
@@ -288,6 +322,13 @@
         <span class="stat-value">{contexts.length}</span>
         <span class="stat-label">Contexts</span>
       </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-value" class:ai-on={aiStatus.enabled} class:ai-off={!aiStatus.enabled}>
+          {aiStatus.engine}
+        </span>
+        <span class="stat-label">AI</span>
+      </div>
     </div>
 
     <!-- Search & Filter Bar -->
@@ -362,6 +403,27 @@
               </div>
             {/if}
             <p class="card-desc">{ctx.aiSummary || ctx.description || ctx.selection || '—'}</p>
+            <div class="card-actions">
+              {#if ctx.aiSummary}
+                <span class="ai-badge">AI</span>
+              {/if}
+              <button
+                class="card-ai-btn"
+                onclick={(e: MouseEvent) => { e.stopPropagation(); summarizeCard(ctx.id); }}
+                disabled={summarizingId === ctx.id}
+                title={ctx.aiSummary ? 'Re-generate AI Summary' : 'Generate AI Summary'}
+              >
+                {#if summarizingId === ctx.id}
+                  <span class="mini-spinner"></span>
+                {:else}
+                  <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41"/>
+                    <circle cx="7" cy="7" r="3"/>
+                  </svg>
+                {/if}
+                AI Summary
+              </button>
+            </div>
           </div>
         {/each}
       {/if}
@@ -1328,4 +1390,58 @@
   }
 
   @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ═══ AI Status ═══ */
+  .ai-on { color: var(--cp-teal-600, #0d9488) !important; }
+  .ai-off { color: var(--cp-slate-400, #94a3b8) !important; font-size: 13px !important; }
+
+  /* ═══ Card AI Actions ═══ */
+  .card-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .ai-badge {
+    font-size: 9px;
+    font-weight: 600;
+    background: linear-gradient(135deg, var(--cp-teal-50, #f0fdfa), var(--cp-teal-100, #ccfbf1));
+    color: var(--cp-teal-700, #0f766e);
+    padding: 1px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.3px;
+  }
+
+  .card-ai-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border: 1px solid var(--cp-slate-200, #e2e8f0);
+    border-radius: 6px;
+    background: white;
+    color: var(--cp-slate-500, #64748b);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 150ms;
+    font-family: inherit;
+  }
+  .card-ai-btn:hover:not(:disabled) {
+    border-color: var(--cp-teal-300, #5eead4);
+    color: var(--cp-teal-600, #0d9488);
+    background: var(--cp-teal-50, #f0fdfa);
+  }
+  .card-ai-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .mini-spinner {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border: 1.5px solid var(--cp-slate-200, #e2e8f0);
+    border-top-color: var(--cp-teal-500, #14b8a6);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
 </style>

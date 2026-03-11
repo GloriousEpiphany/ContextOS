@@ -43,6 +43,7 @@ export interface KnowledgeNode {
   updatedAt: string;
   accessCount: number;
   lastAccessedAt: string;
+  aiSummary?: string;
 }
 
 export interface NodeEmbedding {

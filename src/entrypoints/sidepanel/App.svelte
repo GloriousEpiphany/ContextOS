@@ -36,6 +36,11 @@
   let graphNodes = $state<KnowledgeNode[]>([]);
   let graphEdges = $state<NodeRelation[]>([]);
   let stats = $state({ nodes: 0, relations: 0, tags: 0 });
+  let aiProcessing = $state<string | null>(null); // tracks which AI action is running
+  let aiResult = $state<{ type: string; text: string } | null>(null);
+  let assembleQuery = $state('');
+  let assembleResult = $state<string | null>(null);
+  let showAssembleInput = $state(false);
 
   // ── Computed ──
   let displayedNodes = $derived(
@@ -212,6 +217,91 @@
     } catch { /* ignore */ }
   }
 
+  async function aiSummarizeNode() {
+    if (!selectedNode) return;
+    aiProcessing = 'summarize';
+    aiResult = null;
+    try {
+      const content = selectedNode.content || selectedNode.summary || selectedNode.description || '';
+      const result = await sendMessage('summarizeSelection', { content });
+      if (result?.success && result.summary) {
+        aiResult = { type: 'Summary', text: result.summary };
+        // Update local state
+        selectedNode = { ...selectedNode, aiSummary: result.summary };
+      } else {
+        showNotification(result?.error || 'Summarize failed', 'error');
+      }
+    } catch {
+      showNotification('AI summarize failed', 'error');
+    } finally {
+      aiProcessing = null;
+    }
+  }
+
+  async function aiTranslateNode() {
+    if (!selectedNode) return;
+    aiProcessing = 'translate';
+    aiResult = null;
+    try {
+      const content = selectedNode.content || selectedNode.summary || selectedNode.description || '';
+      const result = await sendMessage('translateSelection', { content });
+      if (result?.success && result.result) {
+        aiResult = { type: 'Translation', text: result.result };
+      } else {
+        showNotification(result?.error || 'Translate failed', 'error');
+      }
+    } catch {
+      showNotification('AI translate failed', 'error');
+    } finally {
+      aiProcessing = null;
+    }
+  }
+
+  async function aiAssembleFromNode() {
+    if (!selectedNode) return;
+    aiProcessing = 'assemble';
+    aiResult = null;
+    try {
+      const result = await sendMessage('assembleContext', {
+        query: selectedNode.title || '',
+        currentPage: { title: selectedNode.title, url: selectedNode.url, content: selectedNode.content },
+      });
+      if (result?.success) {
+        const text = result.contextPackage || result.assembled || JSON.stringify(result, null, 2);
+        aiResult = { type: 'Assembled Context', text };
+        await navigator.clipboard.writeText(text);
+        showNotification('Context copied to clipboard');
+      } else {
+        showNotification(result?.error || 'Assemble failed', 'error');
+      }
+    } catch {
+      showNotification('Assemble context failed', 'error');
+    } finally {
+      aiProcessing = null;
+    }
+  }
+
+  async function assembleContextFromQuery() {
+    if (!assembleQuery.trim()) return;
+    aiProcessing = 'assembleGlobal';
+    assembleResult = null;
+    try {
+      const result = await sendMessage('assembleContext', { query: assembleQuery });
+      if (result?.success) {
+        const text = result.contextPackage || result.assembled || JSON.stringify(result, null, 2);
+        assembleResult = text;
+        await navigator.clipboard.writeText(text);
+        showNotification('Context assembled & copied');
+      } else {
+        showNotification(result?.error || 'Assemble failed', 'error');
+      }
+    } catch {
+      showNotification('Assemble context failed', 'error');
+    } finally {
+      aiProcessing = null;
+    }
+  }
+
   onMount(async () => {
     await Promise.all([loadNodes(), loadGraphData(), loadStats()]);
   });
@@ -356,6 +446,56 @@
                 {/each}
               </div>
             {/if}
+            <!-- AI Actions -->
+            <div class="sp-ai-actions">
+              <button class="sp-ai-btn" onclick={aiSummarizeNode} disabled={aiProcessing !== null}>
+                {#if aiProcessing === 'summarize'}
+                  <span class="sp-mini-spinner"></span>
+                {:else}
+                  <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M8 1v2M8 13v2M1 8h2M13 8h2"/>
+                    <circle cx="7" cy="7" r="3"/>
+                  </svg>
+                {/if}
+                AI Summary
+              </button>
+              <button class="sp-ai-btn" onclick={aiTranslateNode} disabled={aiProcessing !== null}>
+                {#if aiProcessing === 'translate'}
+                  <span class="sp-mini-spinner"></span>
+                {:else}
+                  <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M2 3h6M5 1v2M3 3c0 3 2.5 5 5 7M9 3c-1 2-2.5 3.5-4 5"/>
+                    <path d="M8 9l1.5 4 1.5-4M8.5 12h2"/>
+                  </svg>
+                {/if}
+                Translate
+              </button>
+              <button class="sp-ai-btn" onclick={aiAssembleFromNode} disabled={aiProcessing !== null}>
+                {#if aiProcessing === 'assemble'}
+                  <span class="sp-mini-spinner"></span>
+                {:else}
+                  <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="1" y="1" width="5" height="5" rx="1"/>
+                    <rect x="8" y="1" width="5" height="5" rx="1"/>
+                    <rect x="4.5" y="8" width="5" height="5" rx="1"/>
+                    <line x1="3.5" y1="6" x2="5" y2="8"/>
+                    <line x1="10.5" y1="6" x2="9" y2="8"/>
+                  </svg>
+                {/if}
+                Assemble
+              </button>
+            </div>
+
+            {#if aiResult}
+              <div class="sp-ai-result">
+                <h3>{aiResult.type}</h3>
+                <p>{aiResult.text}</p>
+                <button class="sp-copy-btn" onclick={async () => { await navigator.clipboard.writeText(aiResult!.text); showNotification('Copied'); }}>
+                  Copy
+                </button>
+              </div>
+            {/if}
+
             <div class="sp-detail-sections">
               {#if selectedNode.aiSummary || selectedNode.summary || selectedNode.description}
                 <div class="sp-section">
@@ -434,6 +574,44 @@
     {/if}
   </div>
 
+  <!-- Assemble Context Panel -->
+  {#if showAssembleInput}
+    <div class="sp-assemble-panel">
+      <div class="sp-assemble-header">
+        <h3>Assemble Context</h3>
+        <button class="sp-assemble-close" title="Close" onclick={() => { showAssembleInput = false; assembleResult = null; assembleQuery = ''; }}>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <line x1="3" y1="3" x2="9" y2="9"/>
+            <line x1="9" y1="3" x2="3" y2="9"/>
+          </svg>
+        </button>
+      </div>
+      <div class="sp-assemble-body">
+        <input
+          type="text"
+          class="sp-assemble-input"
+          placeholder="Enter query to assemble context..."
+          bind:value={assembleQuery}
+          onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter') assembleContextFromQuery(); }}
+        />
+        <button class="sp-btn sp-btn-primary sp-assemble-go" onclick={assembleContextFromQuery} disabled={aiProcessing === 'assembleGlobal' || !assembleQuery.trim()}>
+          {#if aiProcessing === 'assembleGlobal'}
+            <span class="sp-btn-spinner"></span>
+          {/if}
+          Assemble
+        </button>
+      </div>
+      {#if assembleResult}
+        <div class="sp-assemble-result">
+          <pre>{assembleResult}</pre>
+          <button class="sp-copy-btn" onclick={async () => { await navigator.clipboard.writeText(assembleResult!); showNotification('Copied'); }}>
+            Copy
+          </button>
+        </div>
+      {/if}
+    </div>
+  {/if}
+
   <!-- Bottom Toolbar -->
   <footer class="sp-footer">
     <button class="sp-btn sp-btn-primary" onclick={addCurrentPage} disabled={loading}>
@@ -445,6 +623,16 @@
         <line x1="2" y1="7" x2="12" y2="7"/>
       </svg>
       Add Page
+    </button>
+    <button class="sp-btn" onclick={() => { showAssembleInput = !showAssembleInput; }}>
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="1" y="1" width="5" height="5" rx="1"/>
+        <rect x="8" y="1" width="5" height="5" rx="1"/>
+        <rect x="4.5" y="8" width="5" height="5" rx="1"/>
+        <line x1="3.5" y1="6" x2="5" y2="8"/>
+        <line x1="10.5" y1="6" x2="9" y2="8"/>
+      </svg>
+      Assemble
     </button>
     <button class="sp-btn" onclick={exportKnowledge}>
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
@@ -920,4 +1108,170 @@
     to { transform: translateX(-50%) translateY(0); opacity: 1; }
   }
   @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ═══ AI Actions ═══ */
+  .sp-ai-actions {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .sp-ai-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 10px;
+    border: 1px solid var(--cp-slate-200, #e2e8f0);
+    border-radius: 8px;
+    background: white;
+    color: var(--cp-slate-600, #475569);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 150ms;
+    font-family: inherit;
+  }
+  .sp-ai-btn:hover:not(:disabled) {
+    border-color: var(--cp-teal-300, #5eead4);
+    color: var(--cp-teal-600, #0d9488);
+    background: var(--cp-teal-50, #f0fdfa);
+  }
+  .sp-ai-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .sp-mini-spinner {
+    display: inline-block;
+    width: 11px;
+    height: 11px;
+    border: 1.5px solid var(--cp-slate-200, #e2e8f0);
+    border-top-color: var(--cp-teal-500, #14b8a6);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+
+  .sp-ai-result {
+    background: var(--cp-slate-50, #f8fafc);
+    border: 1px solid var(--cp-slate-200, #e2e8f0);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+  .sp-ai-result h3 {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--cp-teal-600, #0d9488);
+    margin: 0 0 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .sp-ai-result p {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--cp-slate-700, #334155);
+    margin: 0 0 8px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .sp-copy-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border: 1px solid var(--cp-slate-200, #e2e8f0);
+    border-radius: 6px;
+    background: white;
+    color: var(--cp-slate-500, #64748b);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 150ms;
+    font-family: inherit;
+  }
+  .sp-copy-btn:hover {
+    border-color: var(--cp-teal-300, #5eead4);
+    color: var(--cp-teal-600, #0d9488);
+  }
+
+  /* ═══ Assemble Panel ═══ */
+  .sp-assemble-panel {
+    background: white;
+    border-top: 1px solid var(--cp-slate-200, #e2e8f0);
+    padding: 12px 16px;
+    flex-shrink: 0;
+  }
+
+  .sp-assemble-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .sp-assemble-header h3 {
+    font-size: 13px;
+    font-weight: 600;
+    margin: 0;
+    color: var(--cp-slate-700, #334155);
+  }
+
+  .sp-assemble-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border: none;
+    background: var(--cp-slate-100, #f1f5f9);
+    border-radius: 50%;
+    cursor: pointer;
+    color: var(--cp-slate-400, #94a3b8);
+    transition: all 150ms;
+  }
+  .sp-assemble-close:hover { background: var(--cp-slate-200, #e2e8f0); }
+
+  .sp-assemble-body {
+    display: flex;
+    gap: 6px;
+  }
+
+  .sp-assemble-input {
+    flex: 1;
+    padding: 7px 10px;
+    border: 1px solid var(--cp-slate-200, #e2e8f0);
+    border-radius: 8px;
+    font-size: 12.5px;
+    outline: none;
+    background: var(--cp-slate-50, #f8fafc);
+    font-family: inherit;
+    box-sizing: border-box;
+  }
+  .sp-assemble-input:focus {
+    border-color: var(--cp-teal-400, #2dd4bf);
+    background: white;
+  }
+
+  .sp-assemble-go {
+    flex-shrink: 0;
+    padding: 7px 14px;
+    font-size: 12.5px;
+  }
+
+  .sp-assemble-result {
+    margin-top: 10px;
+    background: var(--cp-slate-50, #f8fafc);
+    border: 1px solid var(--cp-slate-200, #e2e8f0);
+    border-radius: 8px;
+    padding: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  .sp-assemble-result pre {
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--cp-slate-600, #475569);
+    margin: 0 0 8px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: var(--cp-font-mono, monospace);
+  }
 </style>

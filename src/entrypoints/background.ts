@@ -466,6 +466,15 @@ export default defineBackground(() => {
           freshContexts[idx].aiSummary = result;
           await setStorageData('contexts', freshContexts);
         }
+
+        // Sync AI summary to Dexie knowledge graph node
+        try {
+          const { db } = await import('../lib/storage/db');
+          const kgNode = await db.knowledgeNodes.where('contextId').equals(contextId).first();
+          if (kgNode) {
+            await db.knowledgeNodes.update(kgNode.id!, { aiSummary: result });
+          }
+        } catch { /* ignore kg sync errors */ }
       }
     } catch { /* ignore auto-summarize errors */ }
   }
@@ -492,6 +501,16 @@ export default defineBackground(() => {
           freshContexts[idx].aiSummary = result;
           await setStorageData('contexts', freshContexts);
         }
+
+        // Sync AI summary to Dexie knowledge graph node
+        try {
+          const { db } = await import('../lib/storage/db');
+          const kgNode = await db.knowledgeNodes.where('contextId').equals(contextId).first();
+          if (kgNode) {
+            await db.knowledgeNodes.update(kgNode.id!, { aiSummary: result });
+          }
+        } catch { /* ignore kg sync errors */ }
+
         return { success: true, summary: result };
       }
       return { success: false, error: 'AI returned empty response' };

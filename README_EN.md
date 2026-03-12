@@ -1,7 +1,5 @@
 <div align="center">
 
-<img src="promo/contextprompt-ai.png" alt="ContextOS" width="440">
-
 <h1>ContextOS</h1>
 
 **Your browser is sitting on a goldmine of context. ContextOS mines it.**

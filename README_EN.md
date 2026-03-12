@@ -34,38 +34,6 @@ Everything runs local-first. AI features are optional and bring-your-own-key.
 
 ---
 
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────┐
-│  Content Scripts                                        │
-│  ┌──────────┐  ┌──────────────────┐  ┌───────────────┐ │
-│  │ Capture  │  │ Selection Toolbar│  │ AI Injector   │ │
-│  │ 3 depths │  │ Save/Summarize/  │  │ 12 platforms  │ │
-│  │          │  │ Translate/Copy   │  │ Craft Prompt  │ │
-│  └────┬─────┘  └────────┬─────────┘  └───────┬───────┘ │
-└───────┼────────────────┼──────────────────┼─────────────┘
-        │                │                  │
-        ▼                ▼                  ▼
-┌─────────────────────────────────────────────────────────┐
-│  Background Service Worker (Message Hub)                │
-│  ┌──────────┐  ┌──────────┐  ┌────────────────────────┐│
-│  │ AI Router│  │ Knowledge│  │ Context Orchestrator   ││
-│  │ 3-level  │  │ Graph    │  │ Token budget + compress││
-│  │ fallback │  │ CRUD     │  │                        ││
-│  └──────────┘  └──────────┘  └────────────────────────┘│
-└─────────────────────────────────────────────────────────┘
-        │                │                  │
-        ▼                ▼                  ▼
-┌──────────────┐ ┌──────────────┐ ┌───────────────────┐
-│ Dexie.js     │ │ Offscreen    │ │ Native Host       │
-│ IndexedDB    │ │ Transformers │ │ MCP Bridge        │
-│ 5 tables     │ │ .js Embeddings│ │ JSON-RPC 2.0     │
-└──────────────┘ └──────────────┘ └───────────────────┘
-```
-
----
-
 ## Features
 
 ### Knowledge Capture

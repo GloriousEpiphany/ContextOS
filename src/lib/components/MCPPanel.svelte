@@ -4,8 +4,9 @@
   // ── Props ──
   interface Props {
     t?: (key: string, fallback: string) => string;
+    localeVersion?: number;
   }
-  let { t = (_k: string, fb: string) => fb }: Props = $props();
+  let { t = (_k: string, fb: string) => fb, localeVersion = 0 }: Props = $props();
 
   // ── Types ──
   interface MCPToolDef {
@@ -59,6 +60,8 @@
   // Add server form
   let addName = $state('');
   let addUrl = $state('');
+  let showSetupGuide = $state(false);
+  let extensionId = $state('');
 
   function sendMessage(action: string, data?: unknown): Promise<any> {
     return chrome.runtime.sendMessage({ action, data });
@@ -96,14 +99,16 @@
 
   async function addServer() {
     if (!addUrl.trim()) return;
+    const serverName = addName || addUrl;
+    const serverUrl = addUrl;
     const settings = await sendMessage('getSettings');
     const servers = settings.mcpServers || [];
-    servers.push({ name: addName || addUrl, url: addUrl, enabled: true });
+    servers.push({ name: serverName, url: serverUrl, enabled: true });
     await sendMessage('saveSettings', { mcpServers: servers });
     addName = '';
     addUrl = '';
     // Auto-connect
-    await sendMessage('mcpClientConnect', { url: addUrl, name: addName || addUrl });
+    await sendMessage('mcpClientConnect', { url: serverUrl, name: serverName });
     await refresh();
   }
 
@@ -166,6 +171,9 @@
           selectedTool.name === 'list_knowledge' ? 'getAllKnowledgeNodes' :
           selectedTool.name === 'get_stats' ? 'getKnowledgeStats' :
           selectedTool.name === 'capture_page' ? 'captureSelection' :
+          selectedTool.name === 'screenshot' ? 'mcpScreenshot' :
+          selectedTool.name === 'extract_images' ? 'mcpExtractImages' :
+          selectedTool.name === 'capture_page_with_images' ? 'mcpCapturePageWithImages' :
           'getMCPStatus',
           parsedArgs,
         );
@@ -194,9 +202,14 @@
     await refresh();
   }
 
-  onMount(refresh);
+  onMount(() => {
+    extensionId = chrome.runtime.id || '';
+    refresh();
+  });
 </script>
 
+<!-- locale reactivity anchor -->
+{#key localeVersion}
 <!-- Notification -->
 {#if notification}
   <div class="mcp-toast" class:mcp-toast-err={notification.type === 'error'}>{notification.text}</div>
@@ -209,7 +222,7 @@
       <div class="mcp-tool-head">
         <button class="mcp-back" onclick={closeTool}>
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8 1.5L3 6l5 4.5"/></svg>
-          Back
+          {t('back', 'Back')}
         </button>
         <span class="mcp-tool-source">{toolSource === 'server' ? t('mcpLocalServer', 'Local Server') : toolSource}</span>
       </div>
@@ -296,6 +309,76 @@
             <span class="mcp-info-label">{t('mcpToolsExposed', 'Tools exposed')}</span>
             <span class="mcp-info-value">{status.server.tools.length}</span>
           </div>
+
+          <!-- Setup Guide (shown when enabled but native host not connected) -->
+          {#if !status.server.connected}
+            <div class="mcp-guide-banner">
+              <div class="mcp-guide-banner-head">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round">
+                  <circle cx="7" cy="7" r="6"/><path d="M7 4v3"/><circle cx="7" cy="9.5" r="0.5" fill="#f59e0b"/>
+                </svg>
+                <span>{t('mcpNativeNotConnected', 'Native Host not connected')}</span>
+              </div>
+              <p class="mcp-guide-banner-text">{t('mcpNativeRequired', 'Install the Native Messaging Host to expose tools to Claude Desktop, Cursor, etc.')}</p>
+              <button class="mcp-btn-sm mcp-btn-outline" onclick={() => (showSetupGuide = !showSetupGuide)}>
+                {showSetupGuide ? t('mcpHideGuide', 'Hide Guide') : t('mcpSetupGuide', 'Setup Guide')}
+              </button>
+            </div>
+          {/if}
+
+          {#if showSetupGuide}
+            <div class="mcp-guide">
+              <div class="mcp-guide-step">
+                <span class="mcp-guide-num">1</span>
+                <div class="mcp-guide-body">
+                  <span class="mcp-guide-title">{t('mcpGuideStep1', 'Install Node.js')}</span>
+                  <span class="mcp-guide-desc">{t('mcpGuideStep1Desc', 'Ensure node is available in your PATH.')}</span>
+                </div>
+              </div>
+              <div class="mcp-guide-step">
+                <span class="mcp-guide-num">2</span>
+                <div class="mcp-guide-body">
+                  <span class="mcp-guide-title">{t('mcpGuideStep2', 'Run the install script')}</span>
+                  <span class="mcp-guide-desc">{t('mcpGuideStep2Desc', 'Open a terminal in the native-host folder and run:')}</span>
+                  <code class="mcp-guide-code">
+                    {navigator.platform?.startsWith('Win')
+                      ? `install.bat`
+                      : `./install.sh`}
+                  </code>
+                  <span class="mcp-guide-desc">{t('mcpGuideStep2Input', 'When prompted, enter your Extension ID:')}</span>
+                  <div class="mcp-guide-id-row">
+                    <code class="mcp-guide-code mcp-guide-id">{extensionId || '...'}</code>
+                    {#if extensionId}
+                      <button class="mcp-btn-sm mcp-btn-outline" onclick={async () => { await navigator.clipboard.writeText(extensionId); showNotify(t('mcpCopied', 'Copied')); }}>
+                        {t('mcpCopy', 'Copy')}
+                      </button>
+                    {/if}
+                  </div>
+                </div>
+              </div>
+              <div class="mcp-guide-step">
+                <span class="mcp-guide-num">3</span>
+                <div class="mcp-guide-body">
+                  <span class="mcp-guide-title">{t('mcpGuideStep3', 'Restart Chrome')}</span>
+                  <span class="mcp-guide-desc">{t('mcpGuideStep3Desc', 'Close and reopen Chrome for the native host registration to take effect.')}</span>
+                </div>
+              </div>
+              <div class="mcp-guide-step">
+                <span class="mcp-guide-num">4</span>
+                <div class="mcp-guide-body">
+                  <span class="mcp-guide-title">{t('mcpGuideStep4', 'Configure Claude Desktop / Cursor')}</span>
+                  <span class="mcp-guide-desc">{t('mcpGuideStep4Desc', 'Add this URL as an MCP server in your AI tool:')}</span>
+                  <div class="mcp-guide-id-row">
+                    <code class="mcp-guide-code mcp-guide-id">http://127.0.0.1:{status.server.port}</code>
+                    <button class="mcp-btn-sm mcp-btn-outline" onclick={async () => { await navigator.clipboard.writeText(`http://127.0.0.1:${status!.server.port}`); showNotify(t('mcpCopied', 'Copied')); }}>
+                      {t('mcpCopy', 'Copy')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {/if}
+
           <div class="mcp-tool-list">
             {#each status.server.tools as tool}
               <button class="mcp-tool-card" onclick={() => openTool(tool, 'server')}>
@@ -374,6 +457,7 @@
     {/if}
   {/if}
 </div>
+{/key}
 
 <style>
   .mcp { padding: 12px; display: flex; flex-direction: column; gap: 12px; }
@@ -554,4 +638,44 @@
 
   @keyframes mcp-spin { to { transform: rotate(360deg); } }
   @keyframes mcp-slide-in { from { transform: translateY(-8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+  /* Setup Guide Banner */
+  .mcp-guide-banner {
+    display: flex; flex-direction: column; gap: 6px;
+    padding: 10px 12px; border-radius: 8px;
+    background: #fffbeb; border: 1px solid #fde68a;
+  }
+  .mcp-guide-banner-head {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 600; color: #92400e;
+  }
+  .mcp-guide-banner-text { margin: 0; font-size: 11px; color: #a16207; line-height: 1.4; }
+
+  /* Setup Guide Steps */
+  .mcp-guide {
+    display: flex; flex-direction: column; gap: 2px;
+    padding: 10px; border: 1px solid var(--border, #e2e8f0);
+    border-radius: 8px; background: var(--bg-card, #fff);
+  }
+  .mcp-guide-step {
+    display: flex; gap: 10px; padding: 8px 0;
+    border-bottom: 1px solid var(--border, #f1f5f9);
+  }
+  .mcp-guide-step:last-child { border-bottom: none; }
+  .mcp-guide-num {
+    flex-shrink: 0; width: 22px; height: 22px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%; background: var(--accent, #6366f1); color: #fff;
+    font-size: 11px; font-weight: 700;
+  }
+  .mcp-guide-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .mcp-guide-title { font-size: 12px; font-weight: 600; color: var(--text-primary, #1a1a2e); }
+  .mcp-guide-desc { font-size: 11px; color: var(--text-secondary, #64748b); line-height: 1.4; }
+  .mcp-guide-code {
+    display: block; padding: 5px 8px; border-radius: 6px; font-size: 11px;
+    background: var(--bg-muted, #f1f5f9); color: var(--text-primary, #1a1a2e);
+    word-break: break-all; font-family: monospace;
+  }
+  .mcp-guide-id-row { display: flex; align-items: center; gap: 6px; }
+  .mcp-guide-id { flex: 1; }
 </style>

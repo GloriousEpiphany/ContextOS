@@ -213,5 +213,19 @@
   "mcpConnectedTo": { "message": "Connected to" },
   "mcpDisconnectedFrom": { "message": "Disconnected from" },
   "mcpFailed": { "message": "Failed" },
-  "mcpTools": { "message": "tools" }
+  "mcpTools": { "message": "tools" },
+
+  "mcpNativeNotConnected": { "message": "Native Host not connected" },
+  "mcpNativeRequired": { "message": "Install the Native Messaging Host to expose tools to Claude Desktop, Cursor, etc." },
+  "mcpSetupGuide": { "message": "Setup Guide" },
+  "mcpHideGuide": { "message": "Hide Guide" },
+  "mcpGuideStep1": { "message": "Install Node.js" },
+  "mcpGuideStep1Desc": { "message": "Ensure node is available in your PATH." },
+  "mcpGuideStep2": { "message": "Run the install script" },
+  "mcpGuideStep2Desc": { "message": "Open a terminal in the native-host folder and run:" },
+  "mcpGuideStep2Input": { "message": "When prompted, enter your Extension ID:" },
+  "mcpGuideStep3": { "message": "Restart Chrome" },
+  "mcpGuideStep3Desc": { "message": "Close and reopen Chrome for the native host registration to take effect." },
+  "mcpGuideStep4": { "message": "Configure Claude Desktop / Cursor" },
+  "mcpGuideStep4Desc": { "message": "Add this URL as an MCP server in your AI tool:" }
 }

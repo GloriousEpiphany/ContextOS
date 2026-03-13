@@ -213,5 +213,19 @@
   "mcpConnectedTo": { "message": "已连接到" },
   "mcpDisconnectedFrom": { "message": "已断开" },
   "mcpFailed": { "message": "失败" },
-  "mcpTools": { "message": "个工具" }
+  "mcpTools": { "message": "个工具" },
+
+  "mcpNativeNotConnected": { "message": "Native Host 未连接" },
+  "mcpNativeRequired": { "message": "安装 Native Messaging Host 后，可将工具暴露给 Claude Desktop、Cursor 等 AI 工具。" },
+  "mcpSetupGuide": { "message": "安装指南" },
+  "mcpHideGuide": { "message": "收起指南" },
+  "mcpGuideStep1": { "message": "安装 Node.js" },
+  "mcpGuideStep1Desc": { "message": "确保 node 已添加到系统 PATH 中。" },
+  "mcpGuideStep2": { "message": "运行安装脚本" },
+  "mcpGuideStep2Desc": { "message": "在 native-host 文件夹中打开终端，运行：" },
+  "mcpGuideStep2Input": { "message": "脚本会提示输入扩展 ID：" },
+  "mcpGuideStep3": { "message": "重启 Chrome" },
+  "mcpGuideStep3Desc": { "message": "关闭并重新打开 Chrome，使 Native Host 注册生效。" },
+  "mcpGuideStep4": { "message": "配置 Claude Desktop / Cursor" },
+  "mcpGuideStep4Desc": { "message": "在你的 AI 工具中添加此 MCP 服务器地址：" }
 }

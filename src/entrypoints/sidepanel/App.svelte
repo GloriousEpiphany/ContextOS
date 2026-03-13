@@ -667,7 +667,7 @@
     {:else if tab === 'mcp'}
       <!-- MCP Panel -->
       <div class="sp-workflow-wrap">
-        <MCPPanel {t} />
+        <MCPPanel {t} {localeVersion} />
       </div>
 
     {:else if tab === 'settings'}

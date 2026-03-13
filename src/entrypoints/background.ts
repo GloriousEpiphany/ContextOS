@@ -1214,7 +1214,10 @@ export default defineBackground(() => {
           const blob = await resp.blob();
           if (blob.size > MAX_SIZE) return { ...img, base64: null, reason: 'exceeds 4MB' };
           const buf = await blob.arrayBuffer();
-          const base64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+          const bytes = new Uint8Array(buf);
+          let binary = '';
+          for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+          const base64 = btoa(binary);
           return { ...img, base64, mimeType: blob.type };
         } catch {
           return { ...img, base64: null, reason: 'fetch failed' };

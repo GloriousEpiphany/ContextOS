@@ -9,6 +9,7 @@
 import { LocalAIEngine } from './local-engine';
 import { CloudAIEngine } from './cloud-engine';
 import type { CloudAISettings } from './cloud-engine';
+import { summarizeText, extractKeyPoints } from '../nlp-engine';
 
 export type AITaskType =
   | 'summarize_short'    // <2000 chars
@@ -167,7 +168,7 @@ export class AIRouter {
           const cloudResult = await this.cloudEngine.summarize(content, options);
           return { result: cloudResult, level: 'cloud' };
         }
-        return { result: content.substring(0, options.maxLength ?? 500), level: 'fallback_nlp' };
+        return { result: summarizeText(content, options.maxLength ?? 500), level: 'fallback_nlp' };
       }
 
       case 'cloud': {
@@ -177,7 +178,7 @@ export class AIRouter {
 
       default:
         return {
-          result: content.substring(0, options.maxLength ?? 500),
+          result: summarizeText(content, options.maxLength ?? 500),
           level: 'fallback_nlp',
         };
     }

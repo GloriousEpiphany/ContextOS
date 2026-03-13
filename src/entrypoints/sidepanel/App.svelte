@@ -3,6 +3,7 @@
   import { loadLocale, t as _t } from '@/lib/i18n';
   import KnowledgeGraph from '@/lib/components/KnowledgeGraph.svelte';
   import WorkflowPanel from '@/lib/components/WorkflowPanel.svelte';
+  import MCPPanel from '@/lib/components/MCPPanel.svelte';
 
   // ── Types ──
   interface KnowledgeNode {
@@ -27,7 +28,7 @@
   }
 
   // ── State ──
-  let tab = $state<'knowledge' | 'graph' | 'workflows' | 'settings'>('knowledge');
+  let tab = $state<'knowledge' | 'graph' | 'workflows' | 'mcp' | 'settings'>('knowledge');
   let nodes = $state<KnowledgeNode[]>([]);
   let selectedNode = $state<KnowledgeNode | null>(null);
   let graphSelectedNode = $state<KnowledgeNode | null>(null);
@@ -45,6 +46,8 @@
   let showAssembleInput = $state(false);
   let settings = $state<any>({});
   let localeVersion = $state(0);
+  let mcpNewName = $state('');
+  let mcpNewUrl = $state('');
 
   // ── Computed ──
   let displayedNodes = $derived(
@@ -425,6 +428,15 @@
       </svg>
       {t('workflows', 'Workflows')}
     </button>
+    <button class="sp-tab" class:active={tab === 'mcp'} onclick={() => (tab = 'mcp')}>
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="1" y="3" width="5" height="4" rx="1"/><rect x="10" y="3" width="5" height="4" rx="1"/>
+        <rect x="5.5" y="9" width="5" height="4" rx="1"/>
+        <line x1="3.5" y1="7" x2="3.5" y2="9.5"/><line x1="3.5" y1="9.5" x2="8" y2="9.5"/>
+        <line x1="12.5" y1="7" x2="12.5" y2="9.5"/><line x1="12.5" y1="9.5" x2="8" y2="9.5"/>
+      </svg>
+      MCP
+    </button>
     <button class="sp-tab" class:active={tab === 'settings'} onclick={() => (tab = 'settings')}>
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="8" cy="8" r="2"/>
@@ -652,6 +664,12 @@
         <WorkflowPanel />
       </div>
 
+    {:else if tab === 'mcp'}
+      <!-- MCP Panel -->
+      <div class="sp-workflow-wrap">
+        <MCPPanel {t} />
+      </div>
+
     {:else if tab === 'settings'}
       <!-- Settings Panel -->
       <div class="sp-settings">
@@ -732,6 +750,61 @@
               <input type="checkbox" bind:checked={settings.enableInjection} onchange={saveSettingsAction} />
               <span class="sp-toggle-track"><span class="sp-toggle-thumb"></span></span>
             </label>
+          </div>
+        </section>
+
+        <!-- MCP -->
+        <section class="sp-settings-group">
+          <h3>MCP</h3>
+          <div class="sp-setting-row">
+            <span class="sp-setting-label">{t('mcpServer', 'MCP Server')}</span>
+            <label class="sp-toggle">
+              <input type="checkbox" bind:checked={settings.mcpServerEnabled} onchange={saveSettingsAction} />
+              <span class="sp-toggle-track"><span class="sp-toggle-thumb"></span></span>
+            </label>
+          </div>
+          {#if settings.mcpServerEnabled}
+            <div class="sp-setting-row sp-setting-field">
+              <span class="sp-setting-label">{t('mcpPort', 'Port')}</span>
+              <input class="sp-setting-input" type="number" bind:value={settings.mcpServerPort} onchange={saveSettingsAction} style="width:80px;" />
+            </div>
+          {/if}
+          <!-- MCP Client: External Servers -->
+          <div class="sp-setting-row" style="flex-direction:column;align-items:stretch;gap:8px;">
+            <span class="sp-setting-label">{t('mcpExternalServers', 'External MCP Servers')}</span>
+            {#if settings.mcpServers?.length > 0}
+              {#each settings.mcpServers as server, i}
+                <div class="sp-mcp-server-row">
+                  <span class="sp-mcp-server-name">{server.name || server.url}</span>
+                  <label class="sp-toggle sp-toggle-sm">
+                    <input type="checkbox" bind:checked={settings.mcpServers[i].enabled} onchange={saveSettingsAction} />
+                    <span class="sp-toggle-track"><span class="sp-toggle-thumb"></span></span>
+                  </label>
+                  <button class="sp-mcp-server-test" onclick={async () => {
+                    const res = await sendMessage('mcpClientTestConnection', { url: server.url });
+                    showNotification(res.success ? `Connected — ${res.toolCount} tools` : `Failed: ${res.error}`, res.success ? 'success' : 'error');
+                  }}>Test</button>
+                  <button class="sp-mcp-server-del" onclick={() => {
+                    settings.mcpServers = settings.mcpServers.filter((_: any, idx: number) => idx !== i);
+                    saveSettingsAction();
+                  }}>
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                      <line x1="3" y1="3" x2="9" y2="9"/><line x1="9" y1="3" x2="3" y2="9"/>
+                    </svg>
+                  </button>
+                </div>
+              {/each}
+            {/if}
+            <div class="sp-mcp-add-row">
+              <input class="sp-setting-input" type="text" placeholder="Server name" bind:value={mcpNewName} style="flex:1;" />
+              <input class="sp-setting-input" type="text" placeholder="http://127.0.0.1:8080" bind:value={mcpNewUrl} style="flex:2;" />
+              <button class="sp-btn sp-btn-sm" onclick={() => {
+                if (!mcpNewUrl.trim()) return;
+                settings.mcpServers = [...(settings.mcpServers || []), { name: mcpNewName || mcpNewUrl, url: mcpNewUrl, enabled: true }];
+                mcpNewName = ''; mcpNewUrl = '';
+                saveSettingsAction();
+              }}>Add</button>
+            </div>
           </div>
         </section>
       </div>
@@ -1603,4 +1676,35 @@
   .sp-toggle input:checked + .sp-toggle-track .sp-toggle-thumb {
     transform: translateX(16px);
   }
+
+  /* MCP Server Management */
+  .sp-mcp-server-row {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 8px; background: var(--cp-slate-50, #f8fafc);
+    border-radius: 8px; border: 1px solid var(--cp-slate-100, #f1f5f9);
+  }
+  .sp-mcp-server-name {
+    flex: 1; font-size: 12px; color: var(--cp-slate-700, #334155);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .sp-mcp-server-test {
+    font-size: 11px; padding: 2px 8px; border: 1px solid var(--cp-teal-300, #5eead4);
+    border-radius: 4px; background: none; color: var(--cp-teal-600, #0d9488);
+    cursor: pointer; font-family: inherit;
+  }
+  .sp-mcp-server-test:hover { background: var(--cp-teal-50, #f0fdfa); }
+  .sp-mcp-server-del {
+    display: flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; border: none; background: none;
+    cursor: pointer; color: var(--cp-slate-400, #94a3b8); border-radius: 4px;
+  }
+  .sp-mcp-server-del:hover { color: var(--cp-danger, #ef4444); background: var(--cp-danger-light, #fee2e2); }
+  .sp-mcp-add-row { display: flex; gap: 6px; align-items: center; }
+  .sp-btn-sm {
+    font-size: 12px; padding: 5px 10px; border: none; border-radius: 6px;
+    background: var(--cp-teal-500, #14b8a6); color: white;
+    cursor: pointer; font-family: inherit; font-weight: 500; white-space: nowrap;
+  }
+  .sp-btn-sm:hover { background: var(--cp-teal-600, #0d9488); }
+  .sp-toggle-sm { transform: scale(0.85); }
 </style>

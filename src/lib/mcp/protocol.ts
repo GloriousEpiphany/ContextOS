@@ -63,11 +63,12 @@ export interface MCPToolCall {
   arguments: Record<string, unknown>;
 }
 
+export type MCPContentItem =
+  | { type: 'text'; text: string }
+  | { type: 'image'; data: string; mimeType: string };
+
 export interface MCPToolResult {
-  content: Array<{
-    type: 'text';
-    text: string;
-  }>;
+  content: MCPContentItem[];
   isError?: boolean;
 }
 
@@ -119,4 +120,14 @@ export function createToolResult(text: string, isError = false): MCPToolResult {
     content: [{ type: 'text', text }],
     isError,
   };
+}
+
+export function createImageResult(data: string, mimeType = 'image/png'): MCPToolResult {
+  return {
+    content: [{ type: 'image', data, mimeType }],
+  };
+}
+
+export function createMixedResult(items: MCPContentItem[]): MCPToolResult {
+  return { content: items };
 }

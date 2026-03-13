@@ -11,22 +11,28 @@ export default defineContentScript({
   main() {
     browser.runtime.onMessage.addListener(
       ((msg: unknown, _sender: unknown, sendResponse: (response?: unknown) => void) => {
-        const message = msg as { action: string; options?: CaptureOptions };
-        if (message.action !== 'captureContext') return;
+        const message = msg as { action: string; options?: CaptureOptions & ExtractImagesOptions };
 
-        const depth = message.options?.captureDepth ?? 'standard';
-
-        try {
-          const context = capturePageContext(depth);
-          sendResponse({ success: true, context });
-        } catch (error) {
-          sendResponse({
-            success: false,
-            error: (error as Error).message,
-          });
+        if (message.action === 'captureContext') {
+          const depth = message.options?.captureDepth ?? 'standard';
+          try {
+            const context = capturePageContext(depth);
+            sendResponse({ success: true, context });
+          } catch (error) {
+            sendResponse({ success: false, error: (error as Error).message });
+          }
+          return true;
         }
 
-        return true;
+        if (message.action === 'extractImages') {
+          try {
+            const images = extractPageImages(message.options);
+            sendResponse({ success: true, images });
+          } catch (error) {
+            sendResponse({ success: false, error: (error as Error).message });
+          }
+          return true;
+        }
       }) as Parameters<typeof browser.runtime.onMessage.addListener>[0],
     );
   },
@@ -38,6 +44,19 @@ type CaptureDepth = 'light' | 'standard' | 'deep';
 
 interface CaptureOptions {
   captureDepth: CaptureDepth;
+}
+
+interface ExtractImagesOptions {
+  minWidth?: number;
+  minHeight?: number;
+  maxCount?: number;
+}
+
+interface ExtractedImage {
+  src: string;
+  alt: string;
+  width: number;
+  height: number;
 }
 
 interface OgData {
@@ -196,6 +215,32 @@ function extractMainContent(maxLength: number): string {
   return text;
 }
 
+// ==================== Image Extraction ====================
+
+function extractPageImages(options?: ExtractImagesOptions): ExtractedImage[] {
+  const minW = options?.minWidth ?? 50;
+  const minH = options?.minHeight ?? 50;
+  const maxCount = options?.maxCount ?? 50;
+
+  const images: ExtractedImage[] = [];
+  const seen = new Set<string>();
+
+  for (const img of document.querySelectorAll<HTMLImageElement>('img')) {
+    const src = img.currentSrc || img.src;
+    if (!src || src.startsWith('data:') || seen.has(src)) continue;
+
+    const w = img.naturalWidth || img.width;
+    const h = img.naturalHeight || img.height;
+    if (w < minW || h < minH) continue;
+
+    seen.add(src);
+    images.push({ src, alt: img.alt || '', width: w, height: h });
+    if (images.length >= maxCount) break;
+  }
+
+  return images;
+}
+
 // ==================== Private Link Detection ====================
 
 function detectPrivateLink(url: string): boolean {
@@ -236,6 +281,8 @@ const AI_PLATFORMS: PlatformPattern[] = [
   { name: 'Claude',   pattern: /claude\.ai/i },
   { name: 'Gemini',   pattern: /gemini\.google\.com/i },
   { name: 'DeepSeek', pattern: /chat\.deepseek\.com/i },
+  { name: 'Qwen',     pattern: /chat\.qwen\.ai/i },
+  { name: 'Doubao',   pattern: /www\.doubao\.com/i },
   { name: 'Poe',      pattern: /poe\.com/i },
   { name: 'Perplexity', pattern: /perplexity\.ai/i },
   { name: 'Copilot',  pattern: /copilot\.microsoft\.com/i },
@@ -280,6 +327,18 @@ function extractChatContent(platform: string): string {
       '.ds-markdown',
       '.chat-message',
       '.chat-message-content',
+    ],
+    Qwen: [
+      '[class*="chatItem"]',
+      '[class*="message-content"]',
+      '.chat-msg-item',
+      '.markdown-body',
+    ],
+    Doubao: [
+      '[class*="chat-message"]',
+      '[class*="message-item"]',
+      '.receive-message',
+      '.send-message',
     ],
     Poe: [
       '[class*="Message_row"]',

@@ -357,6 +357,18 @@ export default defineBackground(() => {
         case 'deleteWorkflow': return await deleteWorkflowAction(data.id);
         case 'executeWorkflow': return await executeWorkflowAction(data);
 
+        // v4 Phase 4: MCP Client
+        case 'mcpClientConnect': return await mcpClientConnect(data);
+        case 'mcpClientDisconnect': return await mcpClientDisconnect(data);
+        case 'mcpClientListTools': return await mcpClientListTools(data);
+        case 'mcpClientCallTool': return await mcpClientCallTool(data);
+        case 'mcpClientTestConnection': return await mcpClientTestConnection(data);
+        case 'getMCPStatus': return await getMCPStatus();
+        case 'mcpAutoConnect': return await mcpAutoConnect();
+        case 'mcpScreenshot': return await screenshotActiveTab(data?.quality);
+        case 'mcpExtractImages': return await extractImagesFromTab(data || {});
+        case 'mcpCapturePageWithImages': return await capturePageWithImages(data || {});
+
         // v4: Offscreen embedding
         case 'computeEmbedding': {
           // Forward to offscreen document if available, otherwise compute directly
@@ -1045,6 +1057,191 @@ export default defineBackground(() => {
     }
   }
 
+  // ==================== MCP Client ====================
+
+  const _mcpClients: Map<string, InstanceType<typeof import('../lib/mcp/client').MCPClient>> = new Map();
+
+  async function mcpClientConnect(data: { url: string; name?: string }) {
+    const { MCPClient } = await import('../lib/mcp/client');
+    const url = data.url?.replace(/\/+$/, '');
+    if (!url) return { success: false, error: 'URL is required' };
+
+    try {
+      const client = new MCPClient(url);
+      await client.connect();
+      const key = data.name || url;
+      _mcpClients.set(key, client);
+      return { success: true, tools: client.listTools(), name: key };
+    } catch (err) {
+      return { success: false, error: (err as Error).message };
+    }
+  }
+
+  async function mcpClientDisconnect(data: { name: string }) {
+    const client = _mcpClients.get(data.name);
+    if (client) {
+      client.disconnect();
+      _mcpClients.delete(data.name);
+    }
+    return { success: true };
+  }
+
+  async function mcpClientListTools(data: { name: string }) {
+    const client = _mcpClients.get(data.name);
+    if (!client || !client.isConnected()) {
+      return { success: false, error: 'Client not connected' };
+    }
+    return { success: true, tools: client.listTools() };
+  }
+
+  async function mcpClientCallTool(data: { name: string; tool: string; args?: Record<string, unknown> }) {
+    const client = _mcpClients.get(data.name);
+    if (!client || !client.isConnected()) {
+      return { success: false, error: 'Client not connected' };
+    }
+    try {
+      const result = await client.callTool(data.tool, data.args || {});
+      return { success: true, result };
+    } catch (err) {
+      return { success: false, error: (err as Error).message };
+    }
+  }
+
+  async function mcpClientTestConnection(data: { url: string }) {
+    const { MCPClient } = await import('../lib/mcp/client');
+    const url = data.url?.replace(/\/+$/, '');
+    if (!url) return { success: false, error: 'URL is required' };
+
+    try {
+      const client = new MCPClient(url);
+      await client.connect();
+      const tools = client.listTools();
+      client.disconnect();
+      return { success: true, toolCount: tools.length, tools };
+    } catch (err) {
+      return { success: false, error: (err as Error).message };
+    }
+  }
+
+  /** Get full MCP status: server state + all connected clients + their tools */
+  async function getMCPStatus() {
+    const settings = await getSettings();
+    const { MCP_TOOLS } = await import('../lib/mcp/server-tools');
+
+    const clients: Array<{
+      name: string;
+      url: string;
+      connected: boolean;
+      tools: unknown[];
+    }> = [];
+
+    for (const [name, client] of _mcpClients.entries()) {
+      const serverCfg = (settings.mcpServers || []).find(
+        (s: { name: string; url: string }) => s.name === name || s.url === name,
+      );
+      clients.push({
+        name,
+        url: serverCfg?.url || name,
+        connected: client.isConnected(),
+        tools: client.isConnected() ? client.listTools() : [],
+      });
+    }
+
+    return {
+      server: {
+        enabled: !!settings.mcpServerEnabled,
+        port: settings.mcpServerPort || 19960,
+        connected: !!_nativePort,
+        tools: MCP_TOOLS,
+      },
+      clients,
+      configuredServers: settings.mcpServers || [],
+    };
+  }
+
+  /** Auto-connect to all enabled external MCP servers */
+  async function mcpAutoConnect() {
+    const settings = await getSettings();
+    const servers = settings.mcpServers || [];
+    const results: Array<{ name: string; success: boolean; error?: string; toolCount?: number }> = [];
+
+    for (const server of servers) {
+      if (!server.enabled || !server.url) continue;
+      if (_mcpClients.has(server.name) && _mcpClients.get(server.name)!.isConnected()) continue;
+
+      const res = await mcpClientConnect({ url: server.url, name: server.name });
+      results.push({
+        name: server.name,
+        success: res.success,
+        error: res.error,
+        toolCount: res.tools?.length,
+      });
+    }
+    return { success: true, results };
+  }
+
+  // ==================== MCP Multimodal Helpers ====================
+
+  async function screenshotActiveTab(quality?: number): Promise<{ dataUrl: string }> {
+    const options: chrome.tabs.CaptureVisibleTabOptions = quality
+      ? { format: 'jpeg', quality }
+      : { format: 'png' };
+    const dataUrl = await chrome.tabs.captureVisibleTab(undefined as any, options);
+    return { dataUrl };
+  }
+
+  async function extractImagesFromTab(options: {
+    minWidth?: number; minHeight?: number; maxCount?: number; includeBase64?: boolean;
+  }): Promise<{ images: unknown[] }> {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.id) return { images: [] };
+
+    const res = await chrome.tabs.sendMessage(tab.id, {
+      action: 'extractImages',
+      options: { minWidth: options.minWidth, minHeight: options.minHeight, maxCount: options.maxCount },
+    }) as { success: boolean; images?: Array<{ src: string; alt: string; width: number; height: number }> };
+
+    if (!res.success || !res.images) return { images: [] };
+
+    if (!options.includeBase64) return { images: res.images };
+
+    // Fetch each image as base64 in background (no CORS issues in service worker)
+    const MAX_SIZE = 4 * 1024 * 1024; // 4MB
+    const enriched = await Promise.all(
+      res.images.map(async (img) => {
+        try {
+          const resp = await fetch(img.src);
+          const blob = await resp.blob();
+          if (blob.size > MAX_SIZE) return { ...img, base64: null, reason: 'exceeds 4MB' };
+          const buf = await blob.arrayBuffer();
+          const base64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+          return { ...img, base64, mimeType: blob.type };
+        } catch {
+          return { ...img, base64: null, reason: 'fetch failed' };
+        }
+      }),
+    );
+    return { images: enriched };
+  }
+
+  async function capturePageWithImages(options: { quality?: number }): Promise<{ text: string; screenshotDataUrl: string }> {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    let text = '';
+    if (tab?.id) {
+      try {
+        const res = await chrome.tabs.sendMessage(tab.id, {
+          action: 'captureContext',
+          options: { captureDepth: 'standard' },
+        }) as { success: boolean; context?: { title: string; url: string; mainContent: string } };
+        if (res.success && res.context) {
+          text = `# ${res.context.title}\n${res.context.url}\n\n${res.context.mainContent}`;
+        }
+      } catch { /* content script not available */ }
+    }
+    const { dataUrl } = await screenshotActiveTab(options.quality);
+    return { text, screenshotDataUrl: dataUrl };
+  }
+
   // ==================== MCP Native Messaging ====================
 
   let _nativePort: chrome.runtime.Port | null = null;
@@ -1119,6 +1316,9 @@ export default defineBackground(() => {
         getStats: async () => {
           return kg.getStats();
         },
+        screenshotActiveTab,
+        extractImagesFromTab,
+        capturePageWithImages,
       });
 
       const toolName = params?.name as string;
@@ -1140,6 +1340,9 @@ export default defineBackground(() => {
 
   // Try to set up native messaging on startup (non-blocking, only if enabled)
   setupNativeMessaging().catch(() => {});
+
+  // Auto-connect to configured external MCP servers
+  mcpAutoConnect().catch(() => {});
 
   // ==================== Badge ====================
 

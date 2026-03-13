@@ -102,4 +102,38 @@ export const WORKFLOW_TEMPLATES: Workflow[] = [
     createdAt: '2024-01-01T00:00:00.000Z',
     updatedAt: '2024-01-01T00:00:00.000Z',
   },
+  {
+    id: 'content-curation',
+    name: 'Content Curation',
+    description: 'Capture a page, summarize it, extract tags, and add to knowledge base for future reference.',
+    trigger: 'manual',
+    steps: [
+      {
+        id: 'step-1',
+        type: 'capture',
+        label: 'Capture Page Content',
+        config: {},
+      },
+      {
+        id: 'step-2',
+        type: 'summarize',
+        label: 'AI Summarize',
+        config: {},
+      },
+      {
+        id: 'step-3',
+        type: 'search_knowledge',
+        label: 'Find Related Knowledge',
+        config: {},
+      },
+      {
+        id: 'step-4',
+        type: 'export',
+        label: 'Export Curated Entry',
+        config: {},
+      },
+    ],
+    createdAt: '2024-01-01T00:00:00.000Z',
+    updatedAt: '2024-01-01T00:00:00.000Z',
+  },
 ];

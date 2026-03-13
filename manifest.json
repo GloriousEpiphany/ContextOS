@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_extName__",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "description": "__MSG_extDescription__",
   "default_locale": "en",
   "permissions": [
@@ -9,7 +9,11 @@
     "activeTab",
     "scripting",
     "contextMenus",
-    "sidePanel"
+    "sidePanel",
+    "offscreen",
+    "notifications",
+    "nativeMessaging",
+    "tabs"
   ],
   "optional_host_permissions": [
     "https://api.openai.com/*",
@@ -28,8 +32,16 @@
         "https://chatgpt.com/*",
         "https://claude.ai/*",
         "https://gemini.google.com/*",
+        "https://chat.deepseek.com/*",
         "https://chat.qwen.ai/*",
-        "https://www.doubao.com/*"
+        "https://www.doubao.com/*",
+        "https://poe.com/*",
+        "https://www.perplexity.ai/*",
+        "https://perplexity.ai/*",
+        "https://copilot.microsoft.com/*",
+        "https://huggingface.co/chat/*",
+        "https://chat.mistral.ai/*",
+        "https://grok.x.ai/*"
       ],
       "js": [
         "content-scripts/injector.js"

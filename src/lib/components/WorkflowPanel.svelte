@@ -22,6 +22,16 @@
   let loading = $state(false);
   let editingNew = $state(false);
   let newWorkflow = $state<{ name: string; description: string }>({ name: '', description: '' });
+  let editingSteps = $state(false);
+  let editSteps = $state<{ id: string; type: string; label: string; config: Record<string, unknown> }[]>([]);
+
+  const STEP_TYPES = [
+    { type: 'capture', label: 'Capture Page' },
+    { type: 'summarize', label: 'AI Summarize' },
+    { type: 'search_knowledge', label: 'Search Knowledge' },
+    { type: 'generate_prompt', label: 'Generate Prompt' },
+    { type: 'export', label: 'Export Report' },
+  ];
 
   const stepIcons: Record<string, string> = {
     capture: 'M9 9a3 3 0 100-6 3 3 0 000 6zM9 9v6',
@@ -94,11 +104,58 @@
         id: crypto.randomUUID(),
         name: newWorkflow.name,
         description: newWorkflow.description,
-        steps: [],
+        trigger: 'manual',
+        steps: editSteps.length > 0 ? editSteps : [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       });
       editingNew = false;
       newWorkflow = { name: '', description: '' };
+      editSteps = [];
       await loadWorkflows();
+    } catch {
+      // ignore
+    }
+  }
+
+  function addStep() {
+    editSteps = [...editSteps, {
+      id: `step-${editSteps.length + 1}`,
+      type: 'capture',
+      label: 'Capture Page',
+      config: {},
+    }];
+  }
+
+  function removeStep(index: number) {
+    editSteps = editSteps.filter((_, i) => i !== index);
+  }
+
+  function updateStepType(index: number, type: string) {
+    const label = STEP_TYPES.find(s => s.type === type)?.label || type;
+    editSteps = editSteps.map((s, i) => i === index ? { ...s, type, label } : s);
+  }
+
+  function startEditSteps() {
+    if (selectedWorkflow) {
+      editSteps = selectedWorkflow.steps.map(s => ({ ...s, config: (s as any).config || {} }));
+      editingSteps = true;
+    }
+  }
+
+  async function saveEditedSteps() {
+    if (!selectedWorkflow) return;
+    try {
+      await sendMessage('saveWorkflow', {
+        ...selectedWorkflow,
+        steps: editSteps,
+        updatedAt: new Date().toISOString(),
+      });
+      editingSteps = false;
+      await loadWorkflows();
+      // Refresh selected workflow
+      const updated = workflows.find(w => w.id === selectedWorkflow!.id);
+      if (updated) selectedWorkflow = updated;
     } catch {
       // ignore
     }
@@ -120,9 +177,34 @@
         <div class="wf-new-editor">
           <input class="wf-new-input" type="text" placeholder="Workflow name" bind:value={newWorkflow.name} />
           <input class="wf-new-input" type="text" placeholder="Description" bind:value={newWorkflow.description} />
+          <!-- Step Editor -->
+          <div class="wf-step-editor">
+            <div class="wf-step-editor-header">
+              <span class="wf-step-editor-title">Steps</span>
+              <button class="wf-step-add" onclick={addStep}>+ Add Step</button>
+            </div>
+            {#each editSteps as step, i}
+              <div class="wf-step-row">
+                <span class="wf-step-num">{i + 1}</span>
+                <select class="wf-step-select" value={step.type} onchange={(e) => updateStepType(i, (e.target as HTMLSelectElement).value)}>
+                  {#each STEP_TYPES as st}
+                    <option value={st.type}>{st.label}</option>
+                  {/each}
+                </select>
+                <button class="wf-step-remove" onclick={() => removeStep(i)} title="Remove step">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                    <line x1="3" y1="3" x2="9" y2="9"/><line x1="9" y1="3" x2="3" y2="9"/>
+                  </svg>
+                </button>
+              </div>
+            {/each}
+            {#if editSteps.length === 0}
+              <p class="wf-step-empty">No steps added yet</p>
+            {/if}
+          </div>
           <div class="wf-new-actions">
             <button class="wf-run" style="padding:8px;" onclick={saveNewWorkflow}>Save</button>
-            <button class="wf-back" onclick={() => (editingNew = false)}>Cancel</button>
+            <button class="wf-back" onclick={() => { editingNew = false; editSteps = []; }}>Cancel</button>
           </div>
         </div>
       {:else if workflows.length === 0}
@@ -196,8 +278,41 @@
         <p>{selectedWorkflow.description}</p>
       </div>
 
-      <!-- Steps Timeline -->
-      <div class="wf-timeline">
+      <!-- Steps Timeline / Editor -->
+      {#if editingSteps}
+        <div class="wf-step-editor">
+          <div class="wf-step-editor-header">
+            <span class="wf-step-editor-title">Edit Steps</span>
+            <button class="wf-step-add" onclick={addStep}>+ Add Step</button>
+          </div>
+          {#each editSteps as step, i}
+            <div class="wf-step-row">
+              <span class="wf-step-num">{i + 1}</span>
+              <select class="wf-step-select" value={step.type} onchange={(e) => updateStepType(i, (e.target as HTMLSelectElement).value)}>
+                {#each STEP_TYPES as st}
+                  <option value={st.type}>{st.label}</option>
+                {/each}
+              </select>
+              <button class="wf-step-remove" onclick={() => removeStep(i)} title="Remove step">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                  <line x1="3" y1="3" x2="9" y2="9"/><line x1="9" y1="3" x2="3" y2="9"/>
+                </svg>
+              </button>
+            </div>
+          {/each}
+          {#if editSteps.length === 0}
+            <p class="wf-step-empty">No steps — add at least one</p>
+          {/if}
+          <div class="wf-new-actions" style="margin-top:10px;">
+            <button class="wf-run" style="padding:8px;" onclick={saveEditedSteps}>Save Steps</button>
+            <button class="wf-back" onclick={() => (editingSteps = false)}>Cancel</button>
+          </div>
+        </div>
+      {:else}
+        <div class="wf-timeline-header">
+          <button class="wf-edit-steps-btn" onclick={startEditSteps}>Edit Steps</button>
+        </div>
+        <div class="wf-timeline">
         {#each selectedWorkflow.steps as step, i}
           <div
             class="wf-tl-step"
@@ -226,6 +341,7 @@
           </div>
         {/each}
       </div>
+      {/if}
 
       <!-- Run Button -->
       <button class="wf-run" onclick={runWorkflow} disabled={loading}>
@@ -643,4 +759,48 @@
     cursor: pointer; color: var(--cp-slate-400, #94a3b8); transition: all 150ms;
   }
   .wf-del-btn:hover { color: var(--cp-danger, #ef4444); border-color: var(--cp-danger, #ef4444); background: var(--cp-danger-light, #fee2e2); }
+
+  /* Step Editor */
+  .wf-step-editor { padding: 0 0 12px; }
+  .wf-step-editor-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .wf-step-editor-title { font-size: 13px; font-weight: 600; color: var(--cp-slate-700, #334155); }
+  .wf-step-add {
+    font-size: 12px; font-weight: 500; color: var(--cp-teal-600, #0d9488);
+    background: none; border: 1px solid var(--cp-teal-300, #5eead4); border-radius: 6px;
+    padding: 3px 10px; cursor: pointer; font-family: inherit;
+  }
+  .wf-step-add:hover { background: var(--cp-teal-50, #f0fdfa); }
+  .wf-step-row {
+    display: flex; align-items: center; gap: 8px; padding: 6px 0;
+    border-bottom: 1px solid var(--cp-slate-100, #f1f5f9);
+  }
+  .wf-step-num {
+    width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
+    border-radius: 50%; background: var(--cp-slate-100, #f1f5f9); color: var(--cp-slate-500, #64748b);
+    font-size: 11px; font-weight: 600; flex-shrink: 0;
+  }
+  .wf-step-select {
+    flex: 1; padding: 6px 8px; border: 1px solid var(--cp-slate-200, #e2e8f0); border-radius: 6px;
+    font-size: 12px; background: var(--cp-white, white); font-family: inherit; outline: none;
+  }
+  .wf-step-select:focus { border-color: var(--cp-teal-400, #2dd4bf); }
+  .wf-step-remove {
+    display: flex; align-items: center; justify-content: center; width: 24px; height: 24px;
+    border: none; background: none; cursor: pointer; color: var(--cp-slate-400, #94a3b8);
+    border-radius: 4px; flex-shrink: 0;
+  }
+  .wf-step-remove:hover { color: var(--cp-danger, #ef4444); background: var(--cp-danger-light, #fee2e2); }
+  .wf-step-empty { font-size: 12px; color: var(--cp-slate-400, #94a3b8); text-align: center; padding: 12px 0; margin: 0; }
+
+  /* Timeline header with edit button */
+  .wf-timeline-header { display: flex; justify-content: flex-end; margin-bottom: 8px; }
+  .wf-edit-steps-btn {
+    font-size: 12px; font-weight: 500; color: var(--cp-teal-600, #0d9488);
+    background: none; border: 1px solid var(--cp-teal-200, #99f6e4); border-radius: 6px;
+    padding: 4px 10px; cursor: pointer; font-family: inherit;
+  }
+  .wf-edit-steps-btn:hover { background: var(--cp-teal-50, #f0fdfa); }
 </style>

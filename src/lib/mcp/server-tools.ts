@@ -3,8 +3,8 @@
  * Defines the 5 MCP tools exposed by the extension.
  */
 
-import type { MCPTool, MCPToolResult } from './protocol';
-import { createToolResult } from './protocol';
+import type { MCPTool, MCPToolResult, MCPContentItem } from './protocol';
+import { createToolResult, createImageResult, createMixedResult } from './protocol';
 
 // ----------------------------------------------------------------------------
 // Tool Definitions
@@ -61,6 +61,39 @@ export const MCP_TOOLS: MCPTool[] = [
       properties: {},
     },
   },
+  {
+    name: 'screenshot',
+    description: 'Capture a screenshot of the currently active browser tab (visible area).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        quality: { type: 'number', description: 'JPEG quality 1-100 (default: PNG if omitted)' },
+      },
+    },
+  },
+  {
+    name: 'extract_images',
+    description: 'Extract image elements from the active tab, returning URLs and metadata.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        minWidth: { type: 'number', description: 'Minimum image width in px', default: 50 },
+        minHeight: { type: 'number', description: 'Minimum image height in px', default: 50 },
+        maxCount: { type: 'number', description: 'Max images to return', default: 20 },
+        includeBase64: { type: 'boolean', description: 'Fetch images as base64 (max 4MB each)', default: false },
+      },
+    },
+  },
+  {
+    name: 'capture_page_with_images',
+    description: 'Enhanced page capture: returns text content plus a screenshot of the visible area.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        quality: { type: 'number', description: 'Screenshot JPEG quality 1-100 (default: PNG)' },
+      },
+    },
+  },
 ];
 
 // ----------------------------------------------------------------------------
@@ -81,6 +114,9 @@ export function createToolHandlers(deps: {
   captureCurrentTab: () => Promise<{ success: boolean; error?: string }>;
   listKnowledgeNodes: (limit: number) => Promise<unknown[]>;
   getStats: () => Promise<unknown>;
+  screenshotActiveTab: (quality?: number) => Promise<{ dataUrl: string }>;
+  extractImagesFromTab: (options: { minWidth?: number; minHeight?: number; maxCount?: number; includeBase64?: boolean }) => Promise<{ images: unknown[] }>;
+  capturePageWithImages: (options: { quality?: number }) => Promise<{ text: string; screenshotDataUrl: string }>;
 }): Record<string, ToolHandler> {
   return {
     search_knowledge: async (args) => {
@@ -113,6 +149,36 @@ export function createToolHandlers(deps: {
     get_stats: async () => {
       const stats = await deps.getStats();
       return createToolResult(JSON.stringify(stats, null, 2));
+    },
+
+    screenshot: async (args) => {
+      const quality = args.quality as number | undefined;
+      const { dataUrl } = await deps.screenshotActiveTab(quality);
+      // dataUrl is "data:image/png;base64,..." — strip prefix
+      const match = dataUrl.match(/^data:(image\/\w+);base64,(.+)$/);
+      if (!match) return createToolResult('Screenshot failed: invalid data URL', true);
+      return createImageResult(match[2], match[1]);
+    },
+
+    extract_images: async (args) => {
+      const result = await deps.extractImagesFromTab({
+        minWidth: args.minWidth as number | undefined,
+        minHeight: args.minHeight as number | undefined,
+        maxCount: args.maxCount as number | undefined,
+        includeBase64: args.includeBase64 as boolean | undefined,
+      });
+      return createToolResult(JSON.stringify(result.images, null, 2));
+    },
+
+    capture_page_with_images: async (args) => {
+      const quality = args.quality as number | undefined;
+      const { text, screenshotDataUrl } = await deps.capturePageWithImages({ quality });
+      const match = screenshotDataUrl.match(/^data:(image\/\w+);base64,(.+)$/);
+      const items: MCPContentItem[] = [{ type: 'text', text }];
+      if (match) {
+        items.push({ type: 'image', data: match[2], mimeType: match[1] });
+      }
+      return createMixedResult(items);
     },
   };
 }

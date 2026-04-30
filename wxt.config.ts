@@ -27,6 +27,20 @@ export default defineConfig({
       'https://api.anthropic.com/*',
       'https://dashscope.aliyuncs.com/*',
     ],
+    icons: {
+      16: 'assets/icons/icon-16.png',
+      32: 'assets/icons/icon-32.png',
+      48: 'assets/icons/icon-48.png',
+      128: 'assets/icons/icon-128.png',
+    },
+    action: {
+      default_icon: {
+        16: 'assets/icons/icon-16.png',
+        32: 'assets/icons/icon-32.png',
+        48: 'assets/icons/icon-48.png',
+        128: 'assets/icons/icon-128.png',
+      },
+    },
     commands: {
       'capture-page': {
         suggested_key: {

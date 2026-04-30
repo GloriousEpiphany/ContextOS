@@ -153,6 +153,16 @@ export default defineBackground(() => {
     } catch { /* ignore */ }
   }
 
+  // ==================== Selection Toolbar Injection ====================
+
+  chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    if (changeInfo.status !== 'complete' || !tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) return;
+    chrome.scripting.executeScript({
+      target: { tabId },
+      files: ['/content-scripts/selection-toolbar.js'],
+    }).catch(() => {});
+  });
+
   // ==================== Auto Capture ====================
 
   chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {

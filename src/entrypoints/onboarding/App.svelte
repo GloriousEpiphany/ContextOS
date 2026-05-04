@@ -213,14 +213,14 @@
     justify-content: center;
     padding: 24px;
     background:
-      linear-gradient(135deg, var(--cp-teal-50, #f0fdfa) 0%, var(--cp-slate-100, #f1f5f9) 50%, var(--cp-teal-100, #ccfbf1) 100%);
+      linear-gradient(135deg, var(--accent-soft) 0%, var(--cp-slate-100, var(--surface)) 50%, var(--accent-soft) 100%);
   }
 
   /* ── Card ── */
   .onboarding-card {
     width: 100%;
     max-width: 640px;
-    background: var(--cp-white, white);
+    background: var(--bg);
     border-radius: var(--radius-xl, 18px);
     box-shadow: var(--shadow-xl, 0 20px 25px -5px rgba(0, 0, 0, 0.1));
     padding: 40px;
@@ -263,7 +263,7 @@
   }
 
   .progress-step.active .step-dot {
-    background: linear-gradient(135deg, var(--cp-teal-500, #14b8a6), var(--cp-teal-600, #0d9488));
+    background: var(--accent);
     color: white;
   }
 
@@ -275,7 +275,7 @@
   }
 
   .progress-step.active .step-label {
-    color: var(--cp-teal-700, #0f766e);
+    color: var(--accent-strong);
   }
 
   .step-connector {
@@ -288,7 +288,7 @@
   }
 
   .step-connector.active {
-    background: var(--cp-teal-400, #2dd4bf);
+    background: var(--cp-teal-400, var(--accent));
   }
 
   /* ── Step Content ── */
@@ -320,7 +320,7 @@
 
   .tagline {
     font-size: 16px;
-    color: var(--cp-teal-600, #0d9488);
+    color: var(--cp-teal-600, var(--accent-strong));
     margin: 4px 0 28px;
     font-weight: 500;
   }
@@ -335,7 +335,7 @@
   .feature-card {
     padding: 16px;
     border-radius: var(--radius-md, 10px);
-    background: var(--cp-slate-50, #f8fafc);
+    background: var(--cp-slate-50, var(--bg));
     border: 1px solid var(--cp-slate-200, #e2e8f0);
     transition: box-shadow var(--duration-fast, 150ms);
   }
@@ -395,7 +395,7 @@
   .optional-badge {
     font-size: 10px;
     font-weight: 500;
-    background: var(--cp-slate-100, #f1f5f9);
+    background: var(--cp-slate-100, var(--surface));
     color: var(--cp-slate-400, #94a3b8);
     padding: 2px 8px;
     border-radius: var(--radius-full, 9999px);
@@ -410,7 +410,7 @@
     border-radius: var(--radius-sm, 6px);
     font-size: 14px;
     font-family: var(--cp-font-sans);
-    background: var(--cp-white, white);
+    background: var(--bg);
     color: var(--cp-slate-800, #1e293b);
     outline: none;
     box-sizing: border-box;
@@ -419,7 +419,7 @@
 
   .form-select:focus,
   .form-input:focus {
-    border-color: var(--cp-teal-400, #2dd4bf);
+    border-color: var(--cp-teal-400, var(--accent));
     box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.15);
   }
 
@@ -444,7 +444,7 @@
   .tip-card {
     padding: 16px;
     border-radius: var(--radius-md, 10px);
-    background: var(--cp-slate-50, #f8fafc);
+    background: var(--cp-slate-50, var(--bg));
     border: 1px solid var(--cp-slate-200, #e2e8f0);
   }
 
@@ -457,7 +457,7 @@
     font-family: var(--cp-font-mono, monospace);
     font-size: 13px;
     font-weight: 600;
-    background: linear-gradient(135deg, var(--cp-teal-500, #14b8a6), var(--cp-teal-600, #0d9488));
+    background: var(--accent);
     color: white;
     padding: 4px 12px;
     border-radius: var(--radius-sm, 6px);
@@ -467,8 +467,8 @@
     display: inline-block;
     font-size: 13px;
     font-weight: 600;
-    background: var(--cp-teal-100, #ccfbf1);
-    color: var(--cp-teal-700, #0f766e);
+    background: var(--accent-soft);
+    color: var(--accent-strong);
     padding: 4px 12px;
     border-radius: var(--radius-sm, 6px);
   }
@@ -483,7 +483,7 @@
   .link-btn {
     background: none;
     border: none;
-    color: var(--cp-teal-600, #0d9488);
+    color: var(--cp-teal-600, var(--accent-strong));
     font-weight: 600;
     font-size: 13px;
     cursor: pointer;
@@ -493,7 +493,7 @@
   }
 
   .link-btn:hover {
-    color: var(--cp-teal-700, #0f766e);
+    color: var(--accent-strong);
   }
 
   /* ── Navigation Buttons ── */
@@ -518,7 +518,7 @@
   }
 
   .btn-primary {
-    background: linear-gradient(135deg, var(--cp-teal-500, #14b8a6), var(--cp-teal-600, #0d9488));
+    background: var(--accent);
     color: white;
   }
 
@@ -528,7 +528,7 @@
   }
 
   .btn-secondary {
-    background: var(--cp-slate-100, #f1f5f9);
+    background: var(--cp-slate-100, var(--surface));
     color: var(--cp-slate-600, #475569);
   }
 

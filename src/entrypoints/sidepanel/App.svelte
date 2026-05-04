@@ -402,8 +402,8 @@
           <path d="M2 12l10 5 10-5" stroke="url(#sg1)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
           <defs>
             <linearGradient id="sg1" x1="2" y1="2" x2="22" y2="22">
-              <stop stop-color="#14b8a6"/>
-              <stop offset="1" stop-color="#0f766e"/>
+              <stop stop-color="var(--accent)"/>
+              <stop offset="1" stop-color="var(--accent-strong)"/>
             </linearGradient>
           </defs>
         </svg>
@@ -967,8 +967,8 @@
     display: flex;
     flex-direction: column;
     height: 100vh;
-    font-family: var(--cp-font-sans, 'Inter', sans-serif);
-    background: var(--cp-slate-50, #f8fafc);
+    font-family: var(--font-body);
+    background: var(--cp-slate-50, var(--bg));
     color: var(--cp-slate-800, #1e293b);
     overflow: hidden;
   }
@@ -979,8 +979,8 @@
     align-items: center;
     justify-content: space-between;
     padding: 10px 16px;
-    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-    border-bottom: 1px solid var(--cp-slate-200, #e2e8f0);
+    background: var(--bg);
+    border-bottom: 1px solid var(--cp-slate-200, var(--border));
     flex-shrink: 0;
   }
 
@@ -996,7 +996,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, rgba(20, 184, 166, 0.1), rgba(15, 118, 110, 0.08));
+    background: linear-gradient(135deg, var(--accent-soft), var(--accent-soft));
     border-radius: 8px;
   }
 
@@ -1015,7 +1015,7 @@
     font-size: 10px;
     font-weight: 500;
     color: var(--cp-slate-500, #64748b);
-    background: var(--cp-slate-100, #f1f5f9);
+    background: var(--surface);
     padding: 2px 8px;
     border-radius: 10px;
   }
@@ -1025,8 +1025,8 @@
     display: flex;
     gap: 2px;
     padding: 8px 16px 0;
-    background: var(--cp-white, white);
-    border-bottom: 1px solid var(--cp-slate-200, #e2e8f0);
+    background: var(--bg);
+    border-bottom: 1px solid var(--cp-slate-200, var(--border));
     flex-shrink: 0;
   }
 
@@ -1046,17 +1046,17 @@
     transition: all 150ms;
     font-family: inherit;
   }
-  .sp-tab:hover { color: var(--cp-slate-600, #475569); }
+  .sp-tab:hover { color: var(--cp-slate-600, var(--muted)); }
   .sp-tab.active {
-    color: var(--cp-teal-600, #0d9488);
-    border-bottom-color: var(--cp-teal-500, #14b8a6);
+    color: var(--cp-teal-600, var(--accent-strong));
+    border-bottom-color: var(--cp-teal-500, var(--accent));
   }
 
   /* ═══ Search ═══ */
   .sp-search {
     padding: 10px 16px;
-    background: var(--cp-white, white);
-    border-bottom: 1px solid var(--cp-slate-100, #f1f5f9);
+    background: var(--bg);
+    border-bottom: 1px solid var(--surface);
     flex-shrink: 0;
   }
 
@@ -1076,18 +1076,18 @@
   .sp-search-input {
     width: 100%;
     padding: 8px 32px 8px 34px;
-    border: 1px solid var(--cp-slate-200, #e2e8f0);
+    border: 1px solid var(--cp-slate-200, var(--border));
     border-radius: 10px;
     font-size: 13px;
     outline: none;
-    background: var(--cp-slate-50, #f8fafc);
+    background: var(--cp-slate-50, var(--bg));
     transition: all 150ms;
     box-sizing: border-box;
     font-family: inherit;
   }
   .sp-search-input:focus {
-    border-color: var(--cp-teal-400, #2dd4bf);
-    background: var(--cp-white, white);
+    border-color: var(--cp-teal-400, var(--accent));
+    background: var(--bg);
     box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.08);
   }
 
@@ -1100,21 +1100,21 @@
     width: 20px;
     height: 20px;
     border: none;
-    background: var(--cp-slate-200, #e2e8f0);
+    background: var(--cp-slate-200, var(--border));
     border-radius: 50%;
     cursor: pointer;
     color: var(--cp-slate-500, #64748b);
     transition: all 150ms;
   }
-  .sp-search-clear:hover { background: var(--cp-slate-300, #cbd5e1); }
+  .sp-search-clear:hover { background: var(--cp-slate-300, var(--border)); }
 
   .sp-spinner {
     position: absolute;
     right: 10px;
     width: 14px;
     height: 14px;
-    border: 2px solid var(--cp-slate-200, #e2e8f0);
-    border-top-color: var(--cp-teal-500, #14b8a6);
+    border: 2px solid var(--cp-slate-200, var(--border));
+    border-top-color: var(--cp-teal-500, var(--accent));
     border-radius: 50%;
     animation: spin 0.6s linear infinite;
   }
@@ -1131,7 +1131,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: var(--cp-white, white);
+    background: var(--bg);
   }
 
   .sp-list-info {
@@ -1139,7 +1139,7 @@
     font-size: 11px;
     color: var(--cp-slate-400, #94a3b8);
     font-weight: 500;
-    border-bottom: 1px solid var(--cp-slate-100, #f1f5f9);
+    border-bottom: 1px solid var(--surface);
     flex-shrink: 0;
   }
 
@@ -1160,7 +1160,7 @@
     gap: 6px;
   }
   .sp-empty p { margin: 0; }
-  .sp-empty-sub { font-size: 11px; color: var(--cp-slate-300, #cbd5e1); }
+  .sp-empty-sub { font-size: 11px; color: var(--cp-slate-300, var(--border)); }
 
   .sp-node {
     display: block;
@@ -1170,12 +1170,12 @@
     border: none;
     background: none;
     cursor: pointer;
-    border-bottom: 1px solid var(--cp-slate-50, #f8fafc);
+    border-bottom: 1px solid var(--cp-slate-50, var(--bg));
     transition: background 150ms;
     font-family: inherit;
     color: inherit;
   }
-  .sp-node:hover { background: var(--cp-slate-50, #f8fafc); }
+  .sp-node:hover { background: var(--cp-slate-50, var(--bg)); }
 
   .sp-node-title {
     font-weight: 600;
@@ -1205,8 +1205,8 @@
 
   .sp-tag {
     font-size: 10px;
-    background: var(--cp-slate-100, #f1f5f9);
-    color: var(--cp-slate-600, #475569);
+    background: var(--surface);
+    color: var(--cp-slate-600, var(--muted));
     padding: 1px 6px;
     border-radius: 3px;
     font-weight: 500;
@@ -1232,8 +1232,8 @@
     align-items: center;
     justify-content: space-between;
     padding: 8px 16px;
-    border-bottom: 1px solid var(--cp-slate-200, #e2e8f0);
-    background: var(--cp-white, white);
+    border-bottom: 1px solid var(--cp-slate-200, var(--border));
+    background: var(--bg);
     flex-shrink: 0;
   }
 
@@ -1244,13 +1244,13 @@
     background: none;
     border: none;
     cursor: pointer;
-    color: var(--cp-teal-600, #0d9488);
+    color: var(--cp-teal-600, var(--accent-strong));
     font-size: 13px;
     font-weight: 500;
     padding: 4px 0;
     font-family: inherit;
   }
-  .sp-detail-back:hover { color: var(--cp-teal-700, #0f766e); }
+  .sp-detail-back:hover { color: var(--accent-strong); }
 
   .sp-detail-del {
     display: flex;
@@ -1258,9 +1258,9 @@
     justify-content: center;
     width: 28px;
     height: 28px;
-    border: 1px solid var(--cp-slate-200, #e2e8f0);
+    border: 1px solid var(--cp-slate-200, var(--border));
     border-radius: 6px;
-    background: var(--cp-white, white);
+    background: var(--bg);
     cursor: pointer;
     color: var(--cp-slate-400, #94a3b8);
     transition: all 150ms;
@@ -1290,7 +1290,7 @@
     align-items: center;
     gap: 4px;
     font-size: 12px;
-    color: var(--cp-teal-600, #0d9488);
+    color: var(--cp-teal-600, var(--accent-strong));
     text-decoration: none;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1330,7 +1330,7 @@
   .sp-section p {
     font-size: 13px;
     line-height: 1.7;
-    color: var(--cp-slate-600, #475569);
+    color: var(--cp-slate-600, var(--muted));
     margin: 0;
   }
 
@@ -1357,8 +1357,8 @@
     display: flex;
     gap: 8px;
     padding: 10px 16px;
-    background: var(--cp-white, white);
-    border-top: 1px solid var(--cp-slate-200, #e2e8f0);
+    background: var(--bg);
+    border-top: 1px solid var(--cp-slate-200, var(--border));
     flex-shrink: 0;
   }
 
@@ -1367,10 +1367,10 @@
     align-items: center;
     gap: 6px;
     padding: 8px 14px;
-    border: 1px solid var(--cp-slate-200, #e2e8f0);
+    border: 1px solid var(--cp-slate-200, var(--border));
     border-radius: 10px;
-    background: var(--cp-white, white);
-    color: var(--cp-slate-600, #475569);
+    background: var(--bg);
+    color: var(--cp-slate-600, var(--muted));
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
@@ -1378,18 +1378,18 @@
     font-family: inherit;
   }
   .sp-btn:hover {
-    background: var(--cp-slate-50, #f8fafc);
-    border-color: var(--cp-slate-300, #cbd5e1);
+    background: var(--cp-slate-50, var(--bg));
+    border-color: var(--cp-slate-300, var(--border));
   }
 
   .sp-btn-primary {
-    background: linear-gradient(135deg, var(--cp-teal-500, #14b8a6), var(--cp-teal-600, #0d9488));
+    background: var(--accent);
     color: white;
     border-color: transparent;
     box-shadow: 0 2px 6px rgba(13, 148, 136, 0.2);
   }
   .sp-btn-primary:hover {
-    background: linear-gradient(135deg, var(--cp-teal-600, #0d9488), var(--cp-teal-700, #0f766e));
+    background: var(--accent-strong);
     border-color: transparent;
     box-shadow: 0 3px 10px rgba(13, 148, 136, 0.3);
   }
@@ -1441,10 +1441,10 @@
     align-items: center;
     gap: 4px;
     padding: 5px 10px;
-    border: 1px solid var(--cp-slate-200, #e2e8f0);
+    border: 1px solid var(--cp-slate-200, var(--border));
     border-radius: 8px;
-    background: var(--cp-white, white);
-    color: var(--cp-slate-600, #475569);
+    background: var(--bg);
+    color: var(--cp-slate-600, var(--muted));
     font-size: 12px;
     font-weight: 500;
     cursor: pointer;
@@ -1452,9 +1452,9 @@
     font-family: inherit;
   }
   .sp-ai-btn:hover:not(:disabled) {
-    border-color: var(--cp-teal-300, #5eead4);
-    color: var(--cp-teal-600, #0d9488);
-    background: var(--cp-teal-50, #f0fdfa);
+    border-color: var(--cp-teal-300, var(--accent));
+    color: var(--cp-teal-600, var(--accent-strong));
+    background: var(--accent-soft);
   }
   .sp-ai-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
@@ -1462,15 +1462,15 @@
     display: inline-block;
     width: 11px;
     height: 11px;
-    border: 1.5px solid var(--cp-slate-200, #e2e8f0);
-    border-top-color: var(--cp-teal-500, #14b8a6);
+    border: 1.5px solid var(--cp-slate-200, var(--border));
+    border-top-color: var(--cp-teal-500, var(--accent));
     border-radius: 50%;
     animation: spin 0.6s linear infinite;
   }
 
   .sp-ai-result {
-    background: var(--cp-slate-50, #f8fafc);
-    border: 1px solid var(--cp-slate-200, #e2e8f0);
+    background: var(--cp-slate-50, var(--bg));
+    border: 1px solid var(--cp-slate-200, var(--border));
     border-radius: 8px;
     padding: 12px;
     margin-bottom: 16px;
@@ -1478,7 +1478,7 @@
   .sp-ai-result h3 {
     font-size: 11px;
     font-weight: 600;
-    color: var(--cp-teal-600, #0d9488);
+    color: var(--cp-teal-600, var(--accent-strong));
     margin: 0 0 6px;
     text-transform: uppercase;
     letter-spacing: 0.4px;
@@ -1497,9 +1497,9 @@
     align-items: center;
     gap: 4px;
     padding: 3px 10px;
-    border: 1px solid var(--cp-slate-200, #e2e8f0);
+    border: 1px solid var(--cp-slate-200, var(--border));
     border-radius: 6px;
-    background: var(--cp-white, white);
+    background: var(--bg);
     color: var(--cp-slate-500, #64748b);
     font-size: 11px;
     font-weight: 500;
@@ -1508,14 +1508,14 @@
     font-family: inherit;
   }
   .sp-copy-btn:hover {
-    border-color: var(--cp-teal-300, #5eead4);
-    color: var(--cp-teal-600, #0d9488);
+    border-color: var(--cp-teal-300, var(--accent));
+    color: var(--cp-teal-600, var(--accent-strong));
   }
 
   /* ═══ Assemble Panel ═══ */
   .sp-assemble-panel {
-    background: var(--cp-white, white);
-    border-top: 1px solid var(--cp-slate-200, #e2e8f0);
+    background: var(--bg);
+    border-top: 1px solid var(--cp-slate-200, var(--border));
     padding: 12px 16px;
     flex-shrink: 0;
   }
@@ -1540,13 +1540,13 @@
     width: 22px;
     height: 22px;
     border: none;
-    background: var(--cp-slate-100, #f1f5f9);
+    background: var(--surface);
     border-radius: 50%;
     cursor: pointer;
     color: var(--cp-slate-400, #94a3b8);
     transition: all 150ms;
   }
-  .sp-assemble-close:hover { background: var(--cp-slate-200, #e2e8f0); }
+  .sp-assemble-close:hover { background: var(--cp-slate-200, var(--border)); }
 
   .sp-assemble-body {
     display: flex;
@@ -1556,17 +1556,17 @@
   .sp-assemble-input {
     flex: 1;
     padding: 7px 10px;
-    border: 1px solid var(--cp-slate-200, #e2e8f0);
+    border: 1px solid var(--cp-slate-200, var(--border));
     border-radius: 8px;
     font-size: 12.5px;
     outline: none;
-    background: var(--cp-slate-50, #f8fafc);
+    background: var(--cp-slate-50, var(--bg));
     font-family: inherit;
     box-sizing: border-box;
   }
   .sp-assemble-input:focus {
-    border-color: var(--cp-teal-400, #2dd4bf);
-    background: var(--cp-white, white);
+    border-color: var(--cp-teal-400, var(--accent));
+    background: var(--bg);
   }
 
   .sp-assemble-go {
@@ -1577,8 +1577,8 @@
 
   .sp-assemble-result {
     margin-top: 10px;
-    background: var(--cp-slate-50, #f8fafc);
-    border: 1px solid var(--cp-slate-200, #e2e8f0);
+    background: var(--cp-slate-50, var(--bg));
+    border: 1px solid var(--cp-slate-200, var(--border));
     border-radius: 8px;
     padding: 10px;
     max-height: 200px;
@@ -1587,7 +1587,7 @@
   .sp-assemble-result pre {
     font-size: 11px;
     line-height: 1.5;
-    color: var(--cp-slate-600, #475569);
+    color: var(--cp-slate-600, var(--muted));
     margin: 0 0 8px;
     white-space: pre-wrap;
     word-break: break-word;
@@ -1611,8 +1611,8 @@
     justify-content: space-between;
     gap: 8px;
     padding: 10px 14px;
-    background: var(--cp-white, white);
-    border: 1px solid var(--cp-slate-200, #e2e8f0);
+    background: var(--bg);
+    border: 1px solid var(--cp-slate-200, var(--border));
     border-radius: 12px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
     z-index: 10;
@@ -1653,13 +1653,13 @@
     width: 24px;
     height: 24px;
     border: none;
-    background: var(--cp-slate-100, #f1f5f9);
+    background: var(--surface);
     border-radius: 50%;
     cursor: pointer;
     color: var(--cp-slate-400, #94a3b8);
     transition: all 150ms;
   }
-  .sp-graph-actions-close:hover { background: var(--cp-slate-200, #e2e8f0); }
+  .sp-graph-actions-close:hover { background: var(--cp-slate-200, var(--border)); }
 
   /* ═══ Settings Panel ═══ */
   .sp-settings {
@@ -1686,7 +1686,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 8px 0;
-    border-bottom: 1px solid var(--cp-slate-100, #f1f5f9);
+    border-bottom: 1px solid var(--surface);
   }
 
   .sp-setting-label {
@@ -1697,17 +1697,17 @@
 
   .sp-setting-select {
     padding: 5px 8px;
-    border: 1px solid var(--cp-slate-200, #e2e8f0);
+    border: 1px solid var(--cp-slate-200, var(--border));
     border-radius: 8px;
     font-size: 12.5px;
-    background: var(--cp-white, white);
+    background: var(--bg);
     color: var(--cp-slate-700, #334155);
     outline: none;
     font-family: inherit;
     cursor: pointer;
   }
   .sp-setting-select:focus {
-    border-color: var(--cp-teal-400, #2dd4bf);
+    border-color: var(--cp-teal-400, var(--accent));
   }
 
   .sp-setting-field {
@@ -1719,17 +1719,17 @@
   .sp-setting-input {
     width: 100%;
     padding: 6px 10px;
-    border: 1px solid var(--cp-slate-200, #e2e8f0);
+    border: 1px solid var(--cp-slate-200, var(--border));
     border-radius: 8px;
     font-size: 12.5px;
     outline: none;
-    background: var(--cp-slate-50, #f8fafc);
+    background: var(--cp-slate-50, var(--bg));
     font-family: inherit;
     box-sizing: border-box;
   }
   .sp-setting-input:focus {
-    border-color: var(--cp-teal-400, #2dd4bf);
-    background: var(--cp-white, white);
+    border-color: var(--cp-teal-400, var(--accent));
+    background: var(--bg);
   }
 
   .sp-toggle {
@@ -1741,13 +1741,13 @@
   .sp-toggle-track {
     width: 36px;
     height: 20px;
-    background: var(--cp-slate-200, #e2e8f0);
+    background: var(--cp-slate-200, var(--border));
     border-radius: 10px;
     position: relative;
     transition: background 200ms;
   }
   .sp-toggle input:checked + .sp-toggle-track {
-    background: var(--cp-teal-500, #14b8a6);
+    background: var(--cp-teal-500, var(--accent));
   }
   .sp-toggle-thumb {
     position: absolute;
@@ -1767,19 +1767,19 @@
   /* MCP Server Management */
   .sp-mcp-server-row {
     display: flex; align-items: center; gap: 6px;
-    padding: 6px 8px; background: var(--cp-slate-50, #f8fafc);
-    border-radius: 8px; border: 1px solid var(--cp-slate-100, #f1f5f9);
+    padding: 6px 8px; background: var(--cp-slate-50, var(--bg));
+    border-radius: 8px; border: 1px solid var(--surface);
   }
   .sp-mcp-server-name {
     flex: 1; font-size: 12px; color: var(--cp-slate-700, #334155);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .sp-mcp-server-test {
-    font-size: 11px; padding: 2px 8px; border: 1px solid var(--cp-teal-300, #5eead4);
-    border-radius: 4px; background: none; color: var(--cp-teal-600, #0d9488);
+    font-size: 11px; padding: 2px 8px; border: 1px solid var(--cp-teal-300, var(--accent));
+    border-radius: 4px; background: none; color: var(--cp-teal-600, var(--accent-strong));
     cursor: pointer; font-family: inherit;
   }
-  .sp-mcp-server-test:hover { background: var(--cp-teal-50, #f0fdfa); }
+  .sp-mcp-server-test:hover { background: var(--accent-soft); }
   .sp-mcp-server-del {
     display: flex; align-items: center; justify-content: center;
     width: 22px; height: 22px; border: none; background: none;
@@ -1789,10 +1789,10 @@
   .sp-mcp-add-row { display: flex; gap: 6px; align-items: center; }
   .sp-btn-sm {
     font-size: 12px; padding: 5px 10px; border: none; border-radius: 6px;
-    background: var(--cp-teal-500, #14b8a6); color: white;
+    background: var(--cp-teal-500, var(--accent)); color: white;
     cursor: pointer; font-family: inherit; font-weight: 500; white-space: nowrap;
   }
-  .sp-btn-sm:hover { background: var(--cp-teal-600, #0d9488); }
+  .sp-btn-sm:hover { background: var(--cp-teal-600, var(--accent-strong)); }
   .sp-toggle-sm { transform: scale(0.85); }
 
   /* Privacy Warning */
@@ -1804,7 +1804,7 @@
     border-radius: 6px;
     font-size: 11px;
     line-height: 1.5;
-    color: var(--cp-slate-600, #475569);
+    color: var(--cp-slate-600, var(--muted));
   }
   .sp-privacy-warning strong {
     color: var(--cp-danger, #ef4444);

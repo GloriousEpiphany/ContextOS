@@ -43,7 +43,7 @@
       .attr('width', width)
       .attr('height', height)
       .attr('viewBox', `0 0 ${width} ${height}`)
-      .style('font-family', 'Inter, sans-serif');
+      .style('font-family', 'var(--font-body)');
 
     // Gradient defs
     const defs = svg.append('defs');

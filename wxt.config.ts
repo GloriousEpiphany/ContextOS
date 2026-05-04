@@ -21,12 +21,6 @@ export default defineConfig({
       'nativeMessaging',
       'tabs',
     ],
-    optional_host_permissions: [
-      'https://api.openai.com/*',
-      'https://api.deepseek.com/*',
-      'https://api.anthropic.com/*',
-      'https://dashscope.aliyuncs.com/*',
-    ],
     icons: {
       16: 'assets/icons/icon-16.png',
       32: 'assets/icons/icon-32.png',

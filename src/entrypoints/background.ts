@@ -380,6 +380,15 @@ export default defineBackground(() => {
         case 'mcpCapturePageWithImages': return await capturePageWithImages(data || {});
 
         // v4: Offscreen embedding
+        // Sprint 2026-05: Researcher wedge
+        case 'storePaper': return await storePaper(data);
+        case 'fetchSemanticScholar': return await fetchSemanticScholar(data);
+        case 'wipeAllChats': return await wipeAllChats();
+        case 'injectPaperContext': return await injectPaperContext(data);
+        case 'checkPdfAvailability': return await checkPdfAvailability(data);
+        case 'linkPaperRepo': return await linkPaperRepo(data);
+        case 'getRepoCount': return await getRepoCount(data);
+
         case 'computeEmbedding': {
           // Forward to offscreen document if available, otherwise compute directly
           try {
@@ -1356,6 +1365,155 @@ export default defineBackground(() => {
 
   // Auto-connect to configured external MCP servers
   mcpAutoConnect().catch(() => {});
+
+  // ==================== Sprint 2026-05: Researcher Wedge ====================
+
+  async function storePaper(data: any) {
+    try {
+      const { db } = await import('../lib/storage/db');
+      const existing = await db.papers.get(data.id);
+      if (existing) {
+        // Merge: update enrichment fields but keep existing data
+        await db.papers.update(data.id, {
+          ...data,
+          firstAuthorHIndex: data.firstAuthorHIndex ?? existing.firstAuthorHIndex,
+          citedBy: data.citedBy ?? existing.citedBy,
+        });
+      } else {
+        await db.papers.put({
+          id: data.id,
+          source: data.source,
+          arxivId: data.arxivId,
+          doi: data.doi,
+          title: data.title,
+          authors: data.authors || [],
+          abstract: data.abstract,
+          publishedAt: data.publishedAt,
+          capturedAt: data.capturedAt || Date.now(),
+        });
+      }
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  }
+
+  async function fetchSemanticScholar(data: { arxivId: string }) {
+    try {
+      const { semanticScholar } = await import('../lib/api/semantic-scholar');
+      const enriched = await semanticScholar.enrichPaper(data.arxivId);
+      if (!enriched) return { success: false, error: 'Paper not found on Semantic Scholar' };
+
+      // Cache enrichment in Dexie
+      const { db } = await import('../lib/storage/db');
+      const existing = await db.papers.get(`arxiv:${data.arxivId}`);
+      if (existing) {
+        await db.papers.update(`arxiv:${data.arxivId}`, {
+          firstAuthorHIndex: enriched.firstAuthorHIndex,
+          citedBy: enriched.citedBy,
+        });
+      }
+
+      return { success: true, data: enriched };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  }
+
+  async function wipeAllChats() {
+    try {
+      const { db } = await import('../lib/storage/db');
+      await db.chats.clear();
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  }
+
+  async function injectPaperContext(data: { arxivId: string }) {
+    try {
+      const { db } = await import('../lib/storage/db');
+      const paper = await db.papers.get(`arxiv:${data.arxivId}`);
+      if (!paper) return { success: false, error: 'Paper not found' };
+
+      // Build a context package for injection into ChatGPT/Claude
+      const prompt = `I'm reading the paper "${paper.title}" (arXiv:${paper.arxivId}).\n\n` +
+        `Authors: ${paper.authors.join(', ')}\n` +
+        (paper.abstract ? `\nAbstract: ${paper.abstract}\n` : '') +
+        `\nPlease help me understand this paper. What are the key contributions and findings?`;
+
+      // Copy to clipboard
+      await navigator.clipboard.writeText(prompt).catch(() => {});
+
+      return { success: true, prompt };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  }
+
+  /**
+   * Check if a PDF URL is reachable (HEAD request).
+   * Used by paper-badge content script to hide PDF button on CVPR 503.
+   */
+  async function checkPdfAvailability(data: { url: string }): Promise<{ available: boolean }> {
+    try {
+      const res = await fetch(data.url, { method: 'HEAD', signal: AbortSignal.timeout(5000) });
+      return { available: res.ok };
+    } catch {
+      return { available: false };
+    }
+  }
+
+  /**
+   * Store paper↔repo edges from GitHub README arXiv ID extraction.
+   * Deduplicates via compound index [paperId+repoFullName].
+   */
+  async function linkPaperRepo(data: {
+    repoFullName: string;
+    arxivIds: string[];
+    source: string;
+    capturedAt: number;
+  }): Promise<{ linked: number }> {
+    const { db } = await import('../lib/storage/db');
+    let linked = 0;
+
+    for (const arxivId of data.arxivIds) {
+      const paperId = `arxiv:${arxivId}`;
+      try {
+        // Check if edge already exists
+        const existing = await db.paperRepoEdges
+          .where('[paperId+repoFullName]')
+          .equals([paperId, data.repoFullName])
+          .count();
+
+        if (existing === 0) {
+          await db.paperRepoEdges.add({
+            paperId,
+            repoFullName: data.repoFullName,
+            source: data.source,
+            confidence: 0.8, // README arXiv ID is a strong signal
+            createdAt: data.capturedAt,
+          });
+          linked++;
+        }
+      } catch {
+        // Duplicate or DB error — skip
+      }
+    }
+
+    return { linked };
+  }
+
+  /**
+   * Get the number of linked repos for a paper.
+   * Used by paper-badge content script to show repo count.
+   */
+  async function getRepoCount(data: { arxivId: string }): Promise<{ count: number }> {
+    const { db } = await import('../lib/storage/db');
+    const paperId = `arxiv:${data.arxivId}`;
+    const count = await db.paperRepoEdges.where('paperId').equals(paperId).count();
+    return { count };
+  }
 
   // ==================== Badge ====================
 

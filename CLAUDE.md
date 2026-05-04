@@ -39,3 +39,13 @@ Key routing rules:
 - Ship/deploy/PR → invoke /ship or /land-and-deploy
 - Save progress → invoke /context-save
 - Resume context → invoke /context-restore
+
+## Design System
+Always read `DESIGN.md` before making any visual or UI decisions. All font choices, colors, spacing, motion, and aesthetic direction are defined there. Do not deviate without explicit user approval. In QA mode, flag any code that doesn't match DESIGN.md.
+
+Hard rules:
+- Fonts: Fraunces (display) / Instrument Sans (body) / Geist (UI/data, tabular-nums) / JetBrains Mono (mono). NEVER Inter, NEVER Space Grotesk, NEVER system-ui as display.
+- Accent: rust `#C2410C`. NO blue/purple/violet gradients. Only one accent color.
+- Default theme: dark `#0F0F10`. Light mode must work but not be the optimization target.
+- Border radius: hierarchical sm:4 / md:6 / lg:12. NO uniform bubble radius.
+- Motion: minimal-functional. NO scroll-driven animation, NO blob, NO parallax.

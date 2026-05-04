@@ -4,6 +4,8 @@
   import KnowledgeGraph from '@/lib/components/KnowledgeGraph.svelte';
   import WorkflowPanel from '@/lib/components/WorkflowPanel.svelte';
   import MCPPanel from '@/lib/components/MCPPanel.svelte';
+  import Dashboard from '@/lib/components/Dashboard.svelte';
+  import { getAll as getFeatureFlags, setFlag, type FeatureFlagKey, type FeatureFlag } from '@/lib/feature-flags';
 
   // ── Types ──
   interface KnowledgeNode {
@@ -28,7 +30,7 @@
   }
 
   // ── State ──
-  let tab = $state<'knowledge' | 'graph' | 'workflows' | 'mcp' | 'settings'>('knowledge');
+  let tab = $state<'dashboard' | 'knowledge' | 'graph' | 'workflows' | 'mcp' | 'settings'>('dashboard');
   let nodes = $state<KnowledgeNode[]>([]);
   let selectedNode = $state<KnowledgeNode | null>(null);
   let graphSelectedNode = $state<KnowledgeNode | null>(null);
@@ -48,6 +50,7 @@
   let localeVersion = $state(0);
   let mcpNewName = $state('');
   let mcpNewUrl = $state('');
+  let featureFlags = $state<Record<FeatureFlagKey, FeatureFlag> | null>(null);
 
   // ── Computed ──
   let displayedNodes = $derived(
@@ -227,6 +230,22 @@
     settings = (await sendMessage('getSettings')) || {};
   }
 
+  async function loadFeatureFlags() {
+    try {
+      featureFlags = await getFeatureFlags();
+    } catch { /* ignore — feature flags unavailable in dev */ }
+  }
+
+  async function toggleFeatureFlag(key: FeatureFlagKey) {
+    if (!featureFlags) return;
+    const current = featureFlags[key]?.enabled ?? false;
+    await setFlag(key, !current);
+    featureFlags = {
+      ...featureFlags,
+      [key]: { enabled: !current, updated_at: Date.now() },
+    };
+  }
+
   async function saveSettingsAction() {
     await sendMessage('saveSettings', settings);
     applyTheme(settings.theme);
@@ -341,7 +360,7 @@
   }
 
   onMount(async () => {
-    await Promise.all([loadNodes(), loadGraphData(), loadStats(), loadSettings()]);
+    await Promise.all([loadNodes(), loadGraphData(), loadStats(), loadSettings(), loadFeatureFlags()]);
     await loadLocale(settings.language);
     // Load settings for theme
     if (settings?.theme) applyTheme(settings.theme);
@@ -399,6 +418,14 @@
 
   <!-- Tab Navigation -->
   <nav class="sp-tabs">
+    <button class="sp-tab" class:active={tab === 'dashboard'} onclick={() => (tab = 'dashboard')}>
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="1" y="6" width="4" height="9" rx="1"/>
+        <rect x="6" y="3" width="4" height="12" rx="1"/>
+        <rect x="11" y="1" width="4" height="14" rx="1"/>
+      </svg>
+      Sprint
+    </button>
     <button class="sp-tab" class:active={tab === 'knowledge'} onclick={() => (tab = 'knowledge')}>
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
         <rect x="2" y="1" width="12" height="14" rx="2"/>
@@ -478,7 +505,12 @@
 
   <!-- Main Content -->
   <div class="sp-main">
-    {#if tab === 'knowledge'}
+    {#if tab === 'dashboard'}
+      <div class="sp-dashboard-wrap">
+        <Dashboard />
+      </div>
+
+    {:else if tab === 'knowledge'}
       <!-- Knowledge: Single-column navigation layout -->
       {#if selectedNode}
         <!-- Detail View (full width) -->
@@ -807,6 +839,54 @@
             </div>
           </div>
         </section>
+
+        <!-- Feature Flags -->
+        {#if featureFlags}
+          <section class="sp-settings-group">
+            <h3>{t('featureFlags', 'Feature Flags')}</h3>
+            {#each Object.entries(featureFlags) as [key, flag]}
+              <div class="sp-setting-row">
+                <span class="sp-setting-label">{key.replace(/_/g, ' ')}</span>
+                <label class="sp-toggle">
+                  <input
+                    type="checkbox"
+                    checked={flag.enabled}
+                    onchange={() => toggleFeatureFlag(key as FeatureFlagKey)}
+                  />
+                  <span class="sp-toggle-track"><span class="sp-toggle-thumb"></span></span>
+                </label>
+              </div>
+              {#if key === 'ai_conversation_observer' && flag.enabled}
+                <div class="sp-privacy-warning">
+                  <strong>Privacy notice:</strong> Enabling this captures your conversations
+                  with ChatGPT, Claude, and Qwen locally. Data is stored in IndexedDB on
+                  your device and never uploaded. Use the "Wipe all chats" button below to
+                  delete all captured conversations.
+                </div>
+              {/if}
+            {/each}
+
+            {#if featureFlags.ai_conversation_observer?.enabled}
+              <div class="sp-setting-row" style="margin-top: 8px;">
+                <span class="sp-setting-label" style="color: var(--cp-danger, #ef4444);">
+                  {t('wipeAllChats', 'Wipe all chats')}
+                </span>
+                <button
+                  class="sp-btn sp-btn-danger"
+                  style="font-size: 11px; padding: 4px 10px;"
+                  onclick={async () => {
+                    if (confirm('Delete all captured chat conversations? This cannot be undone.')) {
+                      await sendMessage('wipeAllChats');
+                      showNotification('All chats wiped');
+                    }
+                  }}
+                >
+                  Wipe
+                </button>
+              </div>
+            {/if}
+          </section>
+        {/if}
       </div>
     {/if}
   </div>
@@ -1265,6 +1345,13 @@
     overflow-y: auto;
   }
 
+  /* ═══ Dashboard View ═══ */
+  .sp-dashboard-wrap {
+    height: 100%;
+    overflow-y: auto;
+    padding: 16px;
+  }
+
   /* ═══ Footer ═══ */
   .sp-footer {
     display: flex;
@@ -1707,4 +1794,19 @@
   }
   .sp-btn-sm:hover { background: var(--cp-teal-600, #0d9488); }
   .sp-toggle-sm { transform: scale(0.85); }
+
+  /* Privacy Warning */
+  .sp-privacy-warning {
+    margin: 4px 0 8px;
+    padding: 8px 10px;
+    background: rgba(185, 28, 28, 0.06);
+    border: 1px solid rgba(185, 28, 28, 0.15);
+    border-radius: 6px;
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--cp-slate-600, #475569);
+  }
+  .sp-privacy-warning strong {
+    color: var(--cp-danger, #ef4444);
+  }
 </style>

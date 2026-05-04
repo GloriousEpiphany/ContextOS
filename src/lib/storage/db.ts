@@ -15,6 +15,66 @@ import type {
 import { DEFAULT_SETTINGS } from '@/types/index';
 
 // ----------------------------------------------------------------------------
+// Sprint 2026-05 schema additions (v2): researcher wedge
+// ----------------------------------------------------------------------------
+
+/** A paper captured from arXiv / OpenReview / CVPR. Cross-references KG. */
+export interface PaperRecord {
+  /** Stable ID, e.g. "arxiv:2403.05525" or "openreview:abc123". */
+  id: string;
+  source: 'arxiv' | 'openreview' | 'cvpr' | 'neurips' | 'icml' | 'iclr' | 'other';
+  arxivId?: string;
+  doi?: string;
+  title: string;
+  authors: string[];
+  abstract?: string;
+  publishedAt?: string;
+  /** Semantic Scholar h-index of first author (cached). */
+  firstAuthorHIndex?: number;
+  /** Citation count (cached). */
+  citedBy?: number;
+  /** OpenReview review summary (Exp #2). */
+  reviewSummary?: { mean?: number; meta?: string };
+  /** Linked KG node id (if user added it to their graph). */
+  knowledgeNodeId?: number;
+  capturedAt: number;
+}
+
+/** Edge linking a paper to a GitHub repo (Exp #4). */
+export interface PaperRepoEdge {
+  id?: number;
+  paperId: string;
+  repoFullName: string; // "owner/name"
+  /** How the link was discovered. */
+  source: 'readme_arxiv_id' | 'paper_to_code' | 'manual';
+  confidence: number; // 0..1
+  createdAt: number;
+}
+
+/** A captured AI conversation (Exp #5, default-OFF, opt-in). */
+export interface ChatRecord {
+  id: string;
+  source: 'chatgpt' | 'claude' | 'qwen';
+  conversationId: string;
+  tabId: number;
+  /** Messages with redaction already applied. */
+  messages: ChatMessage[];
+  /** Paper IDs referenced in this conversation (for KG edges). */
+  paperRefs: string[];
+  capturedAt: number;
+  /** When the user last viewed/used this chat. */
+  lastUsedAt?: number;
+}
+
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  text: string;
+  /** Redaction stats applied to this message before storage. */
+  redaction?: { emails: number; tokens: number; phones: number };
+  ts: number;
+}
+
+// ----------------------------------------------------------------------------
 // Database Schema
 // ----------------------------------------------------------------------------
 
@@ -24,6 +84,11 @@ class ContextPromptDB extends Dexie {
   embeddings!: Dexie.Table<NodeEmbedding, number>;
   relations!: Dexie.Table<NodeRelation, number>;
   promptHistory!: Dexie.Table<PromptHistoryEntry, string>;
+
+  // v2 (sprint 2026-05) additions
+  papers!: Dexie.Table<PaperRecord, string>;
+  paperRepoEdges!: Dexie.Table<PaperRepoEdge, number>;
+  chats!: Dexie.Table<ChatRecord, string>;
 
   constructor() {
     super('ContextPromptAI');
@@ -35,6 +100,22 @@ class ContextPromptDB extends Dexie {
       embeddings: '++id, nodeId',
       relations: '++id, sourceId, targetId, [sourceId+targetId]',
       promptHistory: 'id, timestamp, favorite',
+    });
+
+    // Version 2 (sprint 2026-05): researcher wedge — papers, repo links, chat history.
+    // Purely additive: existing v1 tables are untouched, so old users keep all data.
+    // Dexie auto-creates new tables on first open after upgrade.
+    this.version(2).stores({
+      // unchanged v1 tables (must be re-declared in version() call):
+      contexts: 'id, timestamp, url',
+      knowledgeNodes: '++id, contextId, title, createdAt, *tags',
+      embeddings: '++id, nodeId',
+      relations: '++id, sourceId, targetId, [sourceId+targetId]',
+      promptHistory: 'id, timestamp, favorite',
+      // new in v2:
+      papers: 'id, source, arxivId, capturedAt',
+      paperRepoEdges: '++id, paperId, repoFullName, [paperId+repoFullName]',
+      chats: 'id, source, conversationId, capturedAt, lastUsedAt',
     });
 
     // Float32Array serialization hook for embeddings

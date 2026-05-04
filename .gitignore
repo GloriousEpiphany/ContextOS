@@ -5,6 +5,7 @@ node_modules/
 dist/
 build/
 .output/
+.gstack/
 *.zip
 
 # IDE and Editor files

@@ -21,7 +21,7 @@ import { extractKeywords, createContextSummary } from '../nlp-engine';
 /**
  * Extract the hostname from a URL string. Returns an empty string on failure.
  */
-function getDomain(url: string): string {
+export function getDomain(url: string): string {
   try {
     return new URL(url).hostname;
   } catch {
@@ -32,7 +32,7 @@ function getDomain(url: string): string {
 /**
  * Compute the Jaccard similarity between two string arrays.
  */
-function jaccardSimilarity(a: string[], b: string[]): number {
+export function jaccardSimilarity(a: string[], b: string[]): number {
   if (a.length === 0 && b.length === 0) return 0;
   const setA = new Set(a.map((s) => s.toLowerCase()));
   const setB = new Set(b.map((s) => s.toLowerCase()));

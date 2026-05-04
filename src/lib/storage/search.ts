@@ -37,7 +37,7 @@ const DEFAULT_KEYWORD_WEIGHT = 0.4;
 const DEFAULT_TIME_DECAY_FACTOR = 0.1;
 
 /** RRF constant k -- standard value from the original RRF paper */
-const RRF_K = 60;
+export const RRF_K = 60;
 
 // ----------------------------------------------------------------------------
 // HybridSearch
@@ -255,7 +255,7 @@ export class HybridSearch {
  *
  * This avoids the need to normalize scores from different sources.
  */
-function reciprocalRankFusion(
+export function reciprocalRankFusion(
   keywordResults: Array<{ nodeId: number; score: number }>,
   vectorResults: VectorSearchResult[],
   keywordWeight: number,

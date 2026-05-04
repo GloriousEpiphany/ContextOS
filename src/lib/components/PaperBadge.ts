@@ -16,6 +16,31 @@ const BADGE_CSS = `
     z-index: 2147483647;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     pointer-events: auto;
+
+    /* Design system tokens — dark default (DESIGN.md) */
+    --pb-bg: #1A1A1C;
+    --pb-border: #2A2A2D;
+    --pb-text: #E8E6E1;
+    --pb-muted: #8A8780;
+    --pb-accent: #C2410C;
+    --pb-accent-hover: #A8370A;
+    --pb-hover-bg: #2A2A2D;
+    --pb-hover-border: #3A3A3D;
+    --pb-shadow: rgba(0,0,0,0.4);
+  }
+
+  @media (prefers-color-scheme: light) {
+    :host {
+      --pb-bg: #FAFAF7;
+      --pb-border: #DEDDD7;
+      --pb-text: #16161A;
+      --pb-muted: #6A685F;
+      --pb-accent: #C2410C;
+      --pb-accent-hover: #A8370A;
+      --pb-hover-bg: #EDEDEA;
+      --pb-hover-border: #C8C7C0;
+      --pb-shadow: rgba(0,0,0,0.12);
+    }
   }
 
   .pb-badge {
@@ -23,12 +48,12 @@ const BADGE_CSS = `
     flex-direction: column;
     gap: 8px;
     padding: 12px 14px;
-    background: #1A1A1C;
-    border: 1px solid #2A2A2D;
+    background: var(--pb-bg);
+    border: 1px solid var(--pb-border);
     border-radius: 6px;
-    color: #E8E6E1;
+    color: var(--pb-text);
     min-width: 160px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    box-shadow: 0 4px 16px var(--pb-shadow);
     opacity: 0;
     transform: translateY(6px);
     transition: opacity 180ms cubic-bezier(0.16, 1, 0.3, 1), transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
@@ -42,7 +67,7 @@ const BADGE_CSS = `
   .pb-eyebrow {
     font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
     font-size: 10px;
-    color: #8A8780;
+    color: var(--pb-muted);
     text-transform: uppercase;
     letter-spacing: 0.12em;
   }
@@ -56,21 +81,21 @@ const BADGE_CSS = `
   .pb-num {
     font-size: 22px;
     font-weight: 600;
-    color: #C2410C;
+    color: var(--pb-accent);
     line-height: 1;
     font-feature-settings: "tnum";
   }
 
   .pb-label {
     font-size: 11px;
-    color: #8A8780;
+    color: var(--pb-muted);
     text-transform: uppercase;
     letter-spacing: 0.08em;
   }
 
   .pb-divider {
     height: 1px;
-    background: #2A2A2D;
+    background: var(--pb-border);
   }
 
   .pb-stat-row {
@@ -87,21 +112,21 @@ const BADGE_CSS = `
   .pb-stat-num {
     font-size: 14px;
     font-weight: 600;
-    color: #E8E6E1;
+    color: var(--pb-text);
     font-feature-settings: "tnum";
   }
 
   .pb-stat-label {
     font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
     font-size: 9px;
-    color: #8A8780;
+    color: var(--pb-muted);
     text-transform: uppercase;
     letter-spacing: 0.1em;
   }
 
   .pb-empty {
     font-size: 11px;
-    color: #8A8780;
+    color: var(--pb-muted);
     font-style: italic;
   }
 
@@ -111,7 +136,7 @@ const BADGE_CSS = `
     gap: 4px;
     margin-top: 4px;
     padding: 5px 10px;
-    background: #C2410C;
+    background: var(--pb-accent);
     color: white;
     border: none;
     border-radius: 4px;
@@ -122,7 +147,7 @@ const BADGE_CSS = `
     transition: background 80ms;
   }
   .pb-context-btn:hover {
-    background: #A8370A;
+    background: var(--pb-accent-hover);
   }
   .pb-context-btn:active {
     transform: scale(0.98);
@@ -135,8 +160,8 @@ const BADGE_CSS = `
     margin-top: 2px;
     padding: 5px 10px;
     background: transparent;
-    color: #E8E6E1;
-    border: 1px solid #2A2A2D;
+    color: var(--pb-text);
+    border: 1px solid var(--pb-border);
     border-radius: 4px;
     font-size: 11px;
     font-weight: 600;
@@ -146,8 +171,8 @@ const BADGE_CSS = `
     text-decoration: none;
   }
   .pb-pdf-btn:hover {
-    background: #2A2A2D;
-    border-color: #3A3A3D;
+    background: var(--pb-hover-bg);
+    border-color: var(--pb-hover-border);
   }
 
   .pb-score-row {
@@ -159,40 +184,14 @@ const BADGE_CSS = `
   .pb-score {
     font-size: 18px;
     font-weight: 600;
-    color: #C2410C;
+    color: var(--pb-accent);
     line-height: 1;
     font-feature-settings: "tnum";
   }
 
   .pb-confidence {
     font-size: 10px;
-    color: #8A8780;
-  }
-
-  @media (prefers-color-scheme: light) {
-    .pb-badge {
-      background: #FAFAF7;
-      border-color: #DEDDD7;
-      color: #16161A;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-    }
-    .pb-eyebrow, .pb-label, .pb-stat-label {
-      color: #6A685F;
-    }
-    .pb-num { color: #C2410C; }
-    .pb-stat-num { color: #16161A; }
-    .pb-divider { background: #DEDDD7; }
-    .pb-empty { color: #6A685F; }
-    .pb-pdf-btn {
-      color: #16161A;
-      border-color: #DEDDD7;
-    }
-    .pb-pdf-btn:hover {
-      background: #EDEDEA;
-      border-color: #C8C7C0;
-    }
-    .pb-score { color: #C2410C; }
-    .pb-confidence { color: #6A685F; }
+    color: var(--pb-muted);
   }
 
   @media (prefers-reduced-motion: reduce) {

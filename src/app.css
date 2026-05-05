@@ -1,7 +1,4 @@
-/* Bunny Fonts (privacy-first, no cookies, GDPR-safe).
- * Switch to self-hosted woff2 in production; ~120KB total gzipped. */
-@import url("https://fonts.bunny.net/css?family=fraunces:400,500,600,700|instrument-sans:400,500,600|geist:400,500,600|jetbrains-mono:400,500&display=swap");
-
+/* Fonts: use system fallbacks. Self-hosted woff2 can be added later for branded feel. */
 @import "tailwindcss";
 
 /* ============================================================

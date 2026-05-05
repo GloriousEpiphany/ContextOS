@@ -1,6 +1,6 @@
 /**
  * ContextPrompt AI v4.0 — Injector Content Script
- * Injects "Craft Prompt" button into AI chat platforms.
+ * Injects "Inject Context" button into AI chat platforms.
  * Uses Shadow DOM for style isolation.
  */
 
@@ -100,8 +100,8 @@ export default defineContentScript({
       btn.id = 'cp-inject-btn';
       btn.className = 'cp-inject-btn';
       btn.type = 'button';
-      btn.title = t('craftPromptTitle', 'Generate and insert AI prompt');
-      btn.innerHTML = `<span class="cp-icon">✨</span><span class="cp-text">${t('craftPrompt', 'Craft Prompt')}</span>`;
+      btn.title = 'Search local ContextOS knowledge and insert compressed context';
+      btn.innerHTML = `<span class="cp-icon">↳</span><span class="cp-text">Inject Context</span>`;
       btn.addEventListener('click', handleClick);
       root.appendChild(btn);
       return btn;
@@ -116,25 +116,69 @@ export default defineContentScript({
       if (btn) btn.classList.add('cp-loading');
 
       try {
-        const context = await sendMsg({ action: 'getLatestContext' });
-        if (!context) {
-          showNotification(t('noContext', 'No captured context. Capture a page first.'), 'warning');
+        const query = getCurrentInputText() || document.title || 'current research question';
+        const response = await sendMsg({
+          action: 'assembleContext',
+          data: {
+            query,
+            model: modelForPlatform(config.name),
+            topK: 8,
+          },
+        });
+
+        if (!response?.success) {
+          showNotification(response?.error || 'Could not assemble local context', 'error');
           return;
         }
-        const settings = await sendMsg({ action: 'getSettings' });
-        const templates = await sendMsg({ action: 'getTemplates' });
-        const template = templates?.find((tpl: any) => tpl.id === settings?.defaultTemplate) || templates?.[0];
-        if (!template) {
-          showNotification(t('noTemplate', 'No template found'), 'warning');
-          return;
-        }
-        const prompt = await generatePrompt(context, template, settings || {});
-        showPreviewPanel(prompt, context, templates, settings || {});
+
+        const prompt = formatInjectionPrompt(query, response);
+        showPreviewPanel(prompt, { title: query }, [], {});
       } catch (error) {
         showNotification(t('errorPrefix', 'Error: ') + (error as Error).message, 'error');
       } finally {
         if (btn) btn.classList.remove('cp-loading');
       }
+    }
+
+    function getCurrentInputText(): string {
+      const input = document.querySelector<HTMLElement>(config.inputSelector);
+      if (!input) return '';
+      const isContentEditable = input.hasAttribute('contenteditable') && input.getAttribute('contenteditable') !== 'false';
+      return (isContentEditable ? input.textContent : (input as HTMLTextAreaElement).value || '').trim();
+    }
+
+    function modelForPlatform(platform: string): string {
+      const models: Record<string, string> = {
+        ChatGPT: 'gpt-4o',
+        Claude: 'claude-sonnet-4-6-20250514',
+        Gemini: 'gpt-4o',
+        DeepSeek: 'deepseek-chat',
+        Qwen: 'qwen-plus',
+        Doubao: 'gpt-4o-mini',
+        Poe: 'gpt-4o-mini',
+        Perplexity: 'gpt-4o-mini',
+        Copilot: 'gpt-4o',
+        HuggingChat: 'gpt-4o-mini',
+        Mistral: 'gpt-4o-mini',
+        Grok: 'gpt-4o',
+      };
+      return models[platform] || 'gpt-4o-mini';
+    }
+
+    function formatInjectionPrompt(query: string, contextPackage: any): string {
+      const sections = contextPackage.metadata?.sections
+        ?.map((section: any) => `${section.name}: ${section.tokens} tokens`)
+        .join(', ') || '';
+
+      return [
+        'Use this local ContextOS context to answer my next question. Prefer the captured papers, notes, and prior AI discussions when they are relevant; ignore irrelevant context.',
+        '',
+        `Question/draft: ${query}`,
+        sections ? `Context budget: ${sections}` : '',
+        '',
+        contextPackage.userContext || '',
+        contextPackage.knowledgeContext ? `\n## Compressed Knowledge\n${contextPackage.knowledgeContext}` : '',
+      ].filter(Boolean).join('\n');
     }
 
     // ── Prompt Generation ──
@@ -189,12 +233,12 @@ export default defineContentScript({
 
       panel.innerHTML = `
         <div class="cp-preview-header">
-          <span class="cp-preview-title">✨ ${t('promptPreview', 'Prompt Preview')}</span>
+          <span class="cp-preview-title">ContextOS Inject Context</span>
           <button class="cp-preview-close" aria-label="Close">&times;</button>
         </div>
-        <div class="cp-preview-toolbar">
+        ${templateOptions ? `<div class="cp-preview-toolbar">
           <select class="cp-template-switcher">${templateOptions}</select>
-        </div>
+        </div>` : ''}
         <textarea class="cp-preview-editor" rows="10">${escapeHtml(prompt)}</textarea>
         <div class="cp-preview-footer">
           <button class="cp-btn-cancel">${t('cancel', 'Cancel')}</button>
@@ -378,7 +422,7 @@ export default defineContentScript({
         align-items: center;
         gap: 6px;
         padding: 7px 14px;
-        background: linear-gradient(135deg, #0f766e 0%, #0e7490 40%, #0d9488 100%);
+        background: #C2410C;
         color: white;
         border: none;
         border-radius: 8px;
@@ -388,7 +432,7 @@ export default defineContentScript({
         letter-spacing: -0.01em;
         cursor: pointer;
         transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 2px 8px rgba(13,148,136,0.25);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 2px 8px rgba(194,65,12,0.25);
         position: relative;
         overflow: hidden;
         margin: 8px 0;
@@ -400,7 +444,7 @@ export default defineContentScript({
         background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
         transition: left 0.5s ease;
       }
-      .cp-inject-btn:hover { transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.08), 0 4px 16px rgba(13,148,136,0.35); }
+      .cp-inject-btn:hover { transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.08), 0 4px 16px rgba(194,65,12,0.35); }
       .cp-inject-btn:hover::before { left: 100%; }
       .cp-inject-btn:active { transform: translateY(0) scale(0.98); }
       .cp-icon { font-size: 14px; display: flex; align-items: center; transition: transform 0.2s; }
@@ -426,7 +470,7 @@ export default defineContentScript({
       .cp-notification-success { background: linear-gradient(135deg, #059669, #10b981); }
       .cp-notification-error { background: linear-gradient(135deg, #dc2626, #ef4444); }
       .cp-notification-warning { background: linear-gradient(135deg, #d97706, #f59e0b); }
-      .cp-notification-info { background: linear-gradient(135deg, #0f766e, #0d9488); }
+      .cp-notification-info { background: #C2410C; }
 
       /* Preview Panel */
       .cp-preview {
@@ -462,7 +506,7 @@ export default defineContentScript({
         background: rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.08);
         border-radius: 8px; font-size: 12px; font-family: inherit; color: inherit; cursor: pointer;
       }
-      .cp-template-switcher:focus { outline: none; border-color: #0d9488; }
+      .cp-template-switcher:focus { outline: none; border-color: #C2410C; }
       .cp-preview-editor {
         flex: 1; margin: 12px 16px; padding: 10px;
         background: rgba(0,0,0,0.02); border: 1px solid rgba(0,0,0,0.06);
@@ -471,7 +515,7 @@ export default defineContentScript({
         line-height: 1.5; color: inherit; resize: vertical;
         min-height: 120px; max-height: 280px;
       }
-      .cp-preview-editor:focus { outline: none; border-color: #0d9488; box-shadow: 0 0 0 3px rgba(13,148,136,0.1); }
+      .cp-preview-editor:focus { outline: none; border-color: #C2410C; box-shadow: 0 0 0 3px rgba(194,65,12,0.1); }
       .cp-preview-footer {
         display: flex; justify-content: flex-end; gap: 8px;
         padding: 12px 16px; border-top: 1px solid rgba(0,0,0,0.04);
@@ -484,19 +528,19 @@ export default defineContentScript({
       .cp-btn-cancel:hover { background: rgba(0,0,0,0.08); }
       .cp-btn-insert {
         padding: 7px 20px;
-        background: linear-gradient(135deg, #0f766e, #0e7490);
+        background: #C2410C;
         color: white; border: none; border-radius: 8px;
         font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer;
-        box-shadow: 0 1px 3px rgba(13,148,136,0.2);
+        box-shadow: 0 1px 3px rgba(194,65,12,0.2);
       }
-      .cp-btn-insert:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(13,148,136,0.3); }
+      .cp-btn-insert:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(194,65,12,0.3); }
       .cp-btn-insert:active { transform: translateY(0) scale(0.98); }
 
       /* Dark mode */
       @media (prefers-color-scheme: dark) {
-        .cp-inject-btn { box-shadow: 0 1px 3px rgba(0,0,0,0.2), 0 2px 12px rgba(13,148,136,0.35); }
+        .cp-inject-btn { box-shadow: 0 1px 3px rgba(0,0,0,0.2), 0 2px 12px rgba(194,65,12,0.35); }
         .cp-preview {
-          background: rgba(15,23,42,0.92); border-color: rgba(94,234,212,0.08); color: #f1f5f9;
+          background: rgba(15,23,42,0.92); border-color: rgba(194,65,12,0.12); color: #f1f5f9;
           box-shadow: 0 1px 2px rgba(0,0,0,0.15), 0 4px 8px rgba(0,0,0,0.15), 0 16px 32px rgba(0,0,0,0.25);
         }
         .cp-preview-header { border-bottom-color: rgba(255,255,255,0.06); }

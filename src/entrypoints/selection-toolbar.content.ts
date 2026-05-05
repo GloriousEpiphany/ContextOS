@@ -65,7 +65,7 @@ export default defineContentScript({
           top: 16px;
           right: 16px;
           padding: 10px 16px;
-          background: #0d9488;
+          background: #C2410C;
           color: white;
           border-radius: 8px;
           font-size: 13px;

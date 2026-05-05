@@ -2,7 +2,12 @@
  * ContextPrompt AI v4.0 — Content Script: Page Context Capture
  * Captures page context (title, content, metadata, AI chat history)
  * when triggered by the background service worker.
+ *
+ * Also detects academic paper pages (arXiv, OpenReview, CVPR) and
+ * extracts structured paper metadata for the knowledge graph.
  */
+
+import { detectPaper } from '@/lib/api/paper-detector';
 
 export default defineContentScript({
   matches: ['<all_urls>'],
@@ -18,6 +23,11 @@ export default defineContentScript({
           const depth = message.options?.captureDepth ?? 'standard';
           try {
             const context = capturePageContext(depth);
+            // Detect paper metadata if on an academic page
+            const paperMeta = detectPaper(location.href, document);
+            if (paperMeta) {
+              context.paperMeta = paperMeta;
+            }
             sendResponse({ success: true, context });
           } catch (error) {
             sendResponse({ success: false, error: (error as Error).message });
@@ -80,6 +90,17 @@ interface PageContext {
   isPrivateLink: boolean;
   platformName: string;
   captureDepth: CaptureDepth;
+  paperMeta?: {
+    id: string;
+    source: string;
+    arxivId?: string;
+    title: string;
+    authors: string[];
+    abstract?: string;
+    pdfUrl?: string;
+    score?: number;
+    confidence?: number;
+  };
 }
 
 // ==================== Main Capture ====================

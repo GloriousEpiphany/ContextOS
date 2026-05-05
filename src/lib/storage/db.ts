@@ -28,16 +28,29 @@ export interface PaperRecord {
   title: string;
   authors: string[];
   abstract?: string;
+  pdfUrl?: string;
   publishedAt?: string;
   /** Semantic Scholar h-index of first author (cached). */
   firstAuthorHIndex?: number;
   /** Citation count (cached). */
   citedBy?: number;
+  /** Semantic Scholar reference graph, trimmed before storage. */
+  references?: PaperGraphRef[];
+  /** Semantic Scholar citation graph, trimmed before storage. */
+  citations?: PaperGraphRef[];
   /** OpenReview review summary (Exp #2). */
-  reviewSummary?: { mean?: number; meta?: string };
+  reviewSummary?: { mean?: number; confidence?: number; meta?: string };
   /** Linked KG node id (if user added it to their graph). */
   knowledgeNodeId?: number;
   capturedAt: number;
+}
+
+export interface PaperGraphRef {
+  paperId: string;
+  title: string;
+  arxivId?: string;
+  year?: number;
+  citationCount?: number;
 }
 
 /** Edge linking a paper to a GitHub repo (Exp #4). */

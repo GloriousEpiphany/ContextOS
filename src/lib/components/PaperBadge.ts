@@ -194,6 +194,23 @@ const BADGE_CSS = `
     color: var(--pb-muted);
   }
 
+  .pb-meta-review {
+    max-width: 260px;
+    font-size: 11px;
+    line-height: 1.45;
+    color: var(--pb-text);
+  }
+
+  .pb-meta-review strong {
+    display: block;
+    margin-bottom: 2px;
+    font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+    font-size: 9px;
+    color: var(--pb-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .pb-badge { transition: none; }
   }
@@ -207,6 +224,7 @@ export interface BadgeData {
   pdfUrl?: string;
   score?: number;
   confidence?: number;
+  metaReview?: string;
 }
 
 export function createPaperBadge(data: BadgeData): HTMLElement {
@@ -281,11 +299,23 @@ export function createPaperBadge(data: BadgeData): HTMLElement {
     badge.appendChild(statRow);
   }
 
+  if (data.metaReview) {
+    const meta = document.createElement('div');
+    meta.className = 'pb-meta-review';
+    const label = document.createElement('strong');
+    label.textContent = 'meta-review';
+    const body = document.createElement('span');
+    body.textContent = data.metaReview.length > 280 ? `${data.metaReview.slice(0, 277)}...` : data.metaReview;
+    meta.appendChild(label);
+    meta.appendChild(body);
+    badge.appendChild(meta);
+  }
+
   // Context button
   if (data.arxivId) {
     const btn = document.createElement('button');
     btn.className = 'pb-context-btn';
-    btn.textContent = 'Inject to ChatGPT';
+    btn.textContent = 'Inject to AI Chat';
     btn.addEventListener('click', () => {
       chrome.runtime.sendMessage({
         action: 'injectPaperContext',

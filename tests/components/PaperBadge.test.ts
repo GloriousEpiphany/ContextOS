@@ -70,11 +70,11 @@ describe('PaperBadge', () => {
     expect(shadow.querySelector('.pb-context-btn')).not.toBeNull();
   });
 
-  it('renders "Inject to ChatGPT" button when arxivId is provided', () => {
+  it('renders "Inject to AI Chat" button when arxivId is provided', () => {
     const host = createPaperBadge({ arxivId: '2403.05525' });
     const shadow = host.shadowRoot!;
     const btn = shadow.querySelector('.pb-context-btn');
-    expect(btn?.textContent).toBe('Inject to ChatGPT');
+    expect(btn?.textContent).toBe('Inject to AI Chat');
   });
 
   it('does not render button when arxivId is missing', () => {
@@ -149,6 +149,14 @@ describe('PaperBadge', () => {
     const shadow = host.shadowRoot!;
     const pdfBtn = shadow.querySelector('.pb-pdf-btn');
     expect(pdfBtn).toBeNull();
+  });
+
+  it('renders OpenReview meta-review when provided', () => {
+    const host = createPaperBadge({ metaReview: 'Accepted after strong ablation evidence.' });
+    const shadow = host.shadowRoot!;
+    const meta = shadow.querySelector('.pb-meta-review');
+    expect(meta?.textContent).toContain('meta-review');
+    expect(meta?.textContent).toContain('ablation');
   });
 
 });

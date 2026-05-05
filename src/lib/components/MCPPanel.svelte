@@ -234,17 +234,18 @@
           <span class="mcp-label">{t('mcpParameters', 'Parameters')}</span>
           {#each Object.entries(selectedTool.inputSchema.properties) as [key, prop]}
             <div class="mcp-param">
-              <label class="mcp-param-label">
+              <span class="mcp-param-label">
                 {key}
                 {#if selectedTool.inputSchema?.required?.includes(key)}<span class="mcp-required">*</span>{/if}
                 <span class="mcp-param-type">{prop.type}</span>
-              </label>
+              </span>
               {#if prop.description}
                 <span class="mcp-param-hint">{prop.description}</span>
               {/if}
               <input
                 class="mcp-param-input"
                 type={prop.type === 'number' ? 'number' : 'text'}
+                aria-label={key}
                 placeholder={prop.default !== undefined ? `Default: ${prop.default}` : ''}
                 bind:value={toolArgs[key]}
               />

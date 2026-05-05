@@ -361,7 +361,7 @@
         <div class="wf-result" class:wf-result-ok={execution.status === 'completed'} class:wf-result-err={execution.status === 'failed'}>
           <div class="wf-result-head">
             {#if execution.status === 'completed'}
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#0f766e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--accent-strong)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="8" cy="8" r="6"/>
                 <path d="M5.5 8L7.5 10L10.5 6"/>
               </svg>
@@ -483,7 +483,7 @@
   .wf-card-badge {
     font-size: 10px;
     font-weight: 500;
-    color: var(--cp-teal-700, #0f766e);
+    color: var(--cp-teal-700, var(--accent-strong));
     background: var(--cp-teal-50, #f0fdfa);
     padding: 2px 8px;
     border-radius: 10px;
@@ -537,7 +537,7 @@
     gap: 4px;
     background: none;
     border: none;
-    color: var(--cp-teal-600, #0d9488);
+    color: var(--cp-teal-600, var(--accent-strong));
     cursor: pointer;
     font-size: 13px;
     padding: 0;
@@ -545,7 +545,7 @@
     font-weight: 500;
     font-family: inherit;
   }
-  .wf-back:hover { color: var(--cp-teal-700, #0f766e); }
+  .wf-back:hover { color: var(--cp-teal-700, var(--accent-strong)); }
 
   .wf-detail-info { margin-bottom: 18px; }
 
@@ -603,7 +603,7 @@
   }
 
   .wf-tl-step.done .wf-tl-circle {
-    background: var(--cp-teal-600, #0d9488);
+    background: var(--cp-teal-600, var(--accent));
     border-color: var(--cp-teal-500, #14b8a6);
     color: white;
   }
@@ -658,18 +658,18 @@
     padding: 11px;
     border: none;
     border-radius: 12px;
-    background: linear-gradient(135deg, var(--cp-teal-500, #14b8a6), var(--cp-teal-600, #0d9488));
+    background: var(--accent);
     color: white;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     transition: all 200ms;
     font-family: inherit;
-    box-shadow: 0 2px 8px rgba(13, 148, 136, 0.25);
+    box-shadow: 0 2px 8px rgba(194, 65, 12, 0.25);
   }
   .wf-run:disabled { opacity: 0.6; cursor: not-allowed; }
   .wf-run:hover:not(:disabled) {
-    box-shadow: 0 4px 14px rgba(13, 148, 136, 0.35);
+    box-shadow: 0 4px 14px rgba(194, 65, 12, 0.35);
   }
 
   .wf-run-spinner {
@@ -705,7 +705,7 @@
     gap: 6px;
     font-weight: 600;
     font-size: 14px;
-    color: var(--cp-teal-700, #0f766e);
+    color: var(--cp-teal-700, var(--accent-strong));
   }
 
   .wf-result-err .wf-result-head { color: var(--cp-danger, #ef4444); }
@@ -768,7 +768,7 @@
   }
   .wf-step-editor-title { font-size: 13px; font-weight: 600; color: var(--cp-slate-700, #334155); }
   .wf-step-add {
-    font-size: 12px; font-weight: 500; color: var(--cp-teal-600, #0d9488);
+    font-size: 12px; font-weight: 500; color: var(--cp-teal-600, var(--accent-strong));
     background: none; border: 1px solid var(--cp-teal-300, #5eead4); border-radius: 6px;
     padding: 3px 10px; cursor: pointer; font-family: inherit;
   }
@@ -798,7 +798,7 @@
   /* Timeline header with edit button */
   .wf-timeline-header { display: flex; justify-content: flex-end; margin-bottom: 8px; }
   .wf-edit-steps-btn {
-    font-size: 12px; font-weight: 500; color: var(--cp-teal-600, #0d9488);
+    font-size: 12px; font-weight: 500; color: var(--cp-teal-600, var(--accent-strong));
     background: none; border: 1px solid var(--cp-teal-200, #99f6e4); border-radius: 6px;
     padding: 4px 10px; cursor: pointer; font-family: inherit;
   }

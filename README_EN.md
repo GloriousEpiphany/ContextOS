@@ -37,10 +37,13 @@ ContextOS stitches the broken workflow back together.
 
 ### 1. Browse-as-capture
 
-Open arXiv / OpenReview / CVPR pages, auto-ingest after 30 seconds.
-- Title, authors, abstract, citation graph (via Semantic Scholar)
-- Auto-link to GitHub implementation repos (detects arXiv IDs in READMEs)
-- Show OpenReview review scores + meta-review inline
+Open arXiv / OpenReview / CVPR / ICCV / ECCV paper pages and stay for 30 seconds; ContextOS ingests the paper automatically.
+
+- arXiv abs / pdf / html pages: title, authors, abstract, arXiv ID, PDF URL
+- OpenReview forum pages: title, authors, abstract, review scores, confidence, meta-review / decision text
+- CVF openaccess pages: CVPR / ICCV / ECCV paper detection
+- Semantic Scholar enrichment: citation count, influential citation count, reference graph, citation graph, open-access PDF URL
+- GitHub repo linking: detects arXiv IDs in GitHub READMEs and links implementation repos back to papers
 
 ### 2. One-click Claude Desktop / Cursor connection
 
@@ -48,6 +51,13 @@ ContextOS exposes an MCP server. After install, just ask in Claude Desktop:
 > What was the ablation in that contrastive learning paper I read last week?
 
 Claude pulls context from your local knowledge graph via MCP. **No copy-paste.**
+
+Current MCP tools include:
+
+- `search_papers`: search local papers by topic / author / arXiv ID / OpenReview metadata
+- `get_paper_context`: return paper metadata, abstract, S2 citation graph, OpenReview meta-review, GitHub repo, and past discussion context
+- `list_recent_papers`: list recently read papers
+- General knowledge graph tools: search, list contexts, stats, screenshot / image extraction, and related utilities
 
 ### 3. AI conversation archiving (optional · default OFF)
 
@@ -63,9 +73,62 @@ ChatGPT · Claude · Gemini · DeepSeek · Qwen · Doubao · Poe · Perplexity �
 
 Click → ContextOS searches relevant papers / notes / past discussions in your local KG → compresses to fit the model's token budget → injects.
 
+Injection is not a static template: the button reads your current input as the query, calls the local context orchestrator, compresses paper / note / chat history to the target platform's token budget, then inserts a ready-to-send context package.
+
 ### 5. Sprint dashboard (new)
 
 The sidepanel shows N=1 → N=5 install progress, weekly reading volume, MCP connection status. For people who actually dogfood.
+
+---
+
+## Notion / external MCP status
+
+ContextOS can be read as an MCP server by Claude Desktop / Cursor / Codex and other MCP clients; that path is implemented for exposing the local paper knowledge graph to AI tools.
+
+Notion's official MCP is a separate external remote MCP server. The official recommended URL is:
+
+```text
+https://mcp.notion.com/mcp
+```
+
+Per Notion's official documentation, Notion MCP requires OAuth 2.0 Authorization Code + PKCE, token refresh, and secure credential storage. ContextOS **does not pretend to be a completed in-extension Notion OAuth client**:
+
+- Supported: add external MCP server URLs in Settings, with explicit diagnostics for the official Notion URL
+- Supported: guide users to connect Notion through Claude Desktop / Cursor / ChatGPT Connectors / Codex MCP login
+- Supported: use `mcp-remote` when a client only supports local stdio MCP servers
+- Not yet supported: completing Notion OAuth + PKCE inside the Chrome extension and importing Notion pages directly into ContextOS
+
+Recommended configuration:
+
+```json
+{
+  "mcpServers": {
+    "notion": {
+      "url": "https://mcp.notion.com/mcp"
+    }
+  }
+}
+```
+
+Claude Desktop currently adds remote MCP through Settings → Connectors; Cursor can add the same URL in MCP settings. For headless automation, Notion's docs state that remote MCP does not support bearer-token auth and requires a human OAuth authorization flow.
+
+References: Notion Docs — [Connecting to Notion MCP](https://developers.notion.com/guides/mcp/get-started-with-mcp) / [Integrating your own MCP client](https://developers.notion.com/guides/mcp/build-mcp-client).
+
+---
+
+## Completion audit
+
+| Goal | Status | Notes |
+|---|---:|---|
+| Auto-ingest arXiv / OpenReview / CVPR after 30 seconds | Implemented | Dedicated content script timer; cancels when the page is hidden |
+| Title, authors, abstract | Implemented | arXiv / OpenReview / CVF detectors; arXiv PDF has ID fallback |
+| Semantic Scholar citation graph | Implemented | Stores references / citations; exposed through MCP paper context |
+| GitHub implementation repo auto-linking | Implemented | Detects arXiv IDs in GitHub README and writes back to the paper |
+| OpenReview scores and meta-review | Implemented | Badge and paper context both include review summary |
+| Claude Desktop / Cursor MCP access to local KG | Implemented | Native Host + MCP tools |
+| AI discussion archiving | Implemented, default OFF | Currently covers ChatGPT / Claude / Qwen with local PII redaction |
+| 12-platform Inject Context | Implemented | Assembles context by platform model budget and injects into the input field |
+| Direct Notion import | Not claimed complete | External MCP URL / diagnostics are supported; direct OAuth import remains future work |
 
 ---
 
@@ -101,6 +164,14 @@ Load into Chrome:
 1. Open `chrome://extensions` → enable Developer Mode
 2. "Load unpacked" → select `.output/chrome-mv3`
 
+Development verification:
+
+```bash
+npm test
+npm run check
+npm run build
+```
+
 ### Enable MCP server (recommended · for Claude Desktop / Cursor)
 
 Requires Node.js on PATH.
@@ -116,6 +187,8 @@ cd native-host && chmod +x install.sh && ./install.sh
 The script asks for your Extension ID (visible in `chrome://extensions` dev mode).
 
 Connect to Claude Desktop: the extension's onboarding page has an "Install MCP entry" one-click button that writes the Claude Desktop config (backs up the existing config to `.bak`; refuses to overwrite if corrupted). Manual instructions in [LICENSE.md](./LICENSE.md).
+
+Connect to Cursor: add the local ContextOS MCP server in Cursor Settings → MCP. If you also want Notion, add `https://mcp.notion.com/mcp` separately and complete Notion OAuth.
 
 ---
 

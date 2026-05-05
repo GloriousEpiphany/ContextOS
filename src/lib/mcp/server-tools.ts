@@ -36,6 +36,39 @@ export const MCP_TOOLS: MCPTool[] = [
     },
   },
   {
+    name: 'search_papers',
+    description: 'Search captured research papers by title, author, arXiv ID, abstract, or venue.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Paper search query, e.g. "contrastive learning" or "2403.05525"' },
+        limit: { type: 'number', description: 'Max papers to return', default: 5 },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'get_paper_context',
+    description: 'Return a prompt-ready context package for one captured paper, including linked GitHub repos.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        paperId: { type: 'string', description: 'Stable paper ID, e.g. "arxiv:2403.05525"' },
+      },
+      required: ['paperId'],
+    },
+  },
+  {
+    name: 'list_recent_papers',
+    description: 'List recently captured research papers.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        limit: { type: 'number', description: 'Max papers to return', default: 20 },
+      },
+    },
+  },
+  {
     name: 'capture_page',
     description: 'Capture the currently active browser tab and add it to the knowledge base.',
     inputSchema: {
@@ -114,6 +147,9 @@ export function createToolHandlers(deps: {
   captureCurrentTab: () => Promise<{ success: boolean; error?: string }>;
   listKnowledgeNodes: (limit: number) => Promise<unknown[]>;
   getStats: () => Promise<unknown>;
+  searchPapers: (query: string, limit: number) => Promise<unknown[]>;
+  getPaperContext: (paperId: string) => Promise<unknown>;
+  listRecentPapers: (limit: number) => Promise<unknown[]>;
   screenshotActiveTab: (quality?: number) => Promise<{ dataUrl: string }>;
   extractImagesFromTab: (options: { minWidth?: number; minHeight?: number; maxCount?: number; includeBase64?: boolean }) => Promise<{ images: unknown[] }>;
   capturePageWithImages: (options: { quality?: number }) => Promise<{ text: string; screenshotDataUrl: string }>;
@@ -130,6 +166,26 @@ export function createToolHandlers(deps: {
       const model = (args.model as string) || 'gpt-4o';
       const context = await deps.assembleContext(query, model);
       return createToolResult(JSON.stringify(context, null, 2));
+    },
+
+    search_papers: async (args) => {
+      const query = args.query as string;
+      const limit = (args.limit as number) || 5;
+      const results = await deps.searchPapers(query, limit);
+      return createToolResult(JSON.stringify(results, null, 2));
+    },
+
+    get_paper_context: async (args) => {
+      const paperId = args.paperId as string;
+      const context = await deps.getPaperContext(paperId);
+      if (!context) return createToolResult(`Paper not found: ${paperId}`, true);
+      return createToolResult(JSON.stringify(context, null, 2));
+    },
+
+    list_recent_papers: async (args) => {
+      const limit = (args.limit as number) || 20;
+      const papers = await deps.listRecentPapers(limit);
+      return createToolResult(JSON.stringify(papers, null, 2));
     },
 
     capture_page: async () => {

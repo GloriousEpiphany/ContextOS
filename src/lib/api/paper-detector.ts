@@ -21,6 +21,8 @@ export interface PaperMeta {
   score?: number;
   /** Review confidence (OpenReview only). */
   confidence?: number;
+  /** Area chair / meta-review summary (OpenReview only, when visible). */
+  metaReview?: string;
 }
 
 // ── arXiv ──
@@ -58,6 +60,17 @@ export function extractArxivMeta(doc: Document, url: string): PaperMeta | null {
   // PDF link
   const pdfLink = doc.querySelector('a.download-pdf') as HTMLAnchorElement | null;
   const pdfUrl = pdfLink?.href ?? `https://arxiv.org/pdf/${arxivId}`;
+
+  if (!title && /arxiv\.org\/pdf\//.test(url)) {
+    return {
+      id: `arxiv:${arxivId}`,
+      source: 'arxiv',
+      arxivId,
+      title: `arXiv:${arxivId}`,
+      authors: [],
+      pdfUrl: `https://arxiv.org/pdf/${arxivId}`,
+    };
+  }
 
   if (!title) return null;
 
@@ -131,6 +144,32 @@ function extractOpenReviewScores(doc: Document): { score?: number; confidence?: 
   return { score, confidence };
 }
 
+function cleanOpenReviewText(text: string): string {
+  return text.replace(/\s+/g, ' ').trim();
+}
+
+function extractOpenReviewMetaReview(doc: Document): string | undefined {
+  const candidates = Array.from(doc.querySelectorAll('strong, h4, h5, span, div'));
+  const labelRe = /^(meta[-\s]?review|decision|recommendation|summary(?:\s+of\s+reviews)?|area\s+chair\s+review)\s*:?\s*$/i;
+
+  for (const el of candidates) {
+    const label = cleanOpenReviewText(el.textContent ?? '');
+    if (!labelRe.test(label)) continue;
+
+    const parentText = cleanOpenReviewText(el.parentElement?.textContent ?? '');
+    const inline = parentText.replace(new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*:?\\s*`, 'i'), '').trim();
+    if (inline.length >= 20) return inline.slice(0, 4000);
+
+    const nextElement = el.nextElementSibling;
+    const nextText = cleanOpenReviewText(nextElement?.textContent ?? '');
+    if (nextText.length >= 20) return nextText.slice(0, 4000);
+  }
+
+  const text = cleanOpenReviewText(doc.body?.textContent ?? '');
+  const match = text.match(/(?:Meta[-\s]?Review|Decision|Recommendation|Area Chair Review)\s*:?\s+(.{20,2000}?)(?:\s+(?:Rating|Confidence|Official Review|Review:)|$)/i);
+  return match?.[1]?.trim();
+}
+
 export function extractOpenReviewMeta(doc: Document, url: string): PaperMeta | null {
   const forumId = parseOpenReviewId(url);
   if (!forumId) return null;
@@ -160,6 +199,7 @@ export function extractOpenReviewMeta(doc: Document, url: string): PaperMeta | n
 
   // Extract review scores from OpenReview DOM
   const { score, confidence } = extractOpenReviewScores(doc);
+  const metaReview = extractOpenReviewMetaReview(doc);
 
   // Detect venue from page content to determine source
   const venueText = doc.body?.textContent ?? '';
@@ -178,6 +218,7 @@ export function extractOpenReviewMeta(doc: Document, url: string): PaperMeta | n
     abstract,
     score,
     confidence,
+    metaReview,
   };
 }
 

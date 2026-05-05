@@ -112,6 +112,11 @@ export class KnowledgeGraph {
    * until it is actually needed.
    */
   async generateEmbeddingForNode(nodeId: number): Promise<void> {
+    // Vitest runs this module in Node, where the browser-only Transformers.js
+    // runtime cannot load remote ESM/WebGPU assets. Keyword search and explicit
+    // relations remain available there; embeddings are a browser capability.
+    if (typeof chrome === 'undefined' && typeof window === 'undefined') return;
+
     const node = await db.knowledgeNodes.get(nodeId);
     if (!node) return;
 

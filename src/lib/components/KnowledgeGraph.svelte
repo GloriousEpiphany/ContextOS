@@ -168,8 +168,8 @@
     // Main circle
     node.append('circle')
       .attr('r', (d) => sizeScale(d.accessCount))
-      .attr('fill', '#0d9488')
-      .attr('stroke', '#0f766e')
+      .attr('fill', '#C2410C')
+      .attr('stroke', '#9A3412')
       .attr('stroke-width', 1.5)
       .on('click', (_event: MouseEvent, d: SimNode) => {
         onNodeClick?.(d.data);

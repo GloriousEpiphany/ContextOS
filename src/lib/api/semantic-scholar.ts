@@ -26,8 +26,8 @@ export interface S2Paper {
     hIndex?: number;
     citationCount?: number;
   }>;
-  references?: Array<{ paperId: string; title: string }>;
-  citations?: Array<{ paperId: string; title: string }>;
+  references?: Array<{ paperId: string; title: string; year?: number; citationCount?: number; externalIds?: { ArXiv?: string } }>;
+  citations?: Array<{ paperId: string; title: string; year?: number; citationCount?: number; externalIds?: { ArXiv?: string } }>;
   openAccessPdf?: { url: string };
 }
 
@@ -41,8 +41,9 @@ export interface S2Author {
 
 // ── Fields to request (minimize payload) ──
 
-const PAPER_FIELDS = 'paperId,externalIds,title,abstract,year,citationCount,influentialCitationCount,authors.authorId,authors.name,authors.hIndex,authors.citationCount,openAccessPdf';
+const PAPER_FIELDS = 'paperId,externalIds,title,abstract,year,citationCount,influentialCitationCount,authors.authorId,authors.name,authors.hIndex,authors.citationCount,openAccessPdf,references.paperId,references.title,references.year,references.citationCount,references.externalIds,citations.paperId,citations.title,citations.year,citations.citationCount,citations.externalIds';
 const AUTHOR_FIELDS = 'authorId,name,hIndex,citationCount,paperCount';
+const MAX_GRAPH_REFS = 30;
 
 // ── Client ──
 
@@ -134,8 +135,24 @@ export class SemanticScholarClient extends ExternalApiClient {
       publishedAt: paper.year ? `${paper.year}` : undefined,
       citedBy: paper.citationCount ?? undefined,
       firstAuthorHIndex,
+      pdfUrl: paper.openAccessPdf?.url,
+      references: normalizeGraphRefs(paper.references),
+      citations: normalizeGraphRefs(paper.citations),
     };
   }
 }
 
 export const semanticScholar = new SemanticScholarClient();
+
+function normalizeGraphRefs(papers: S2Paper['references'] | S2Paper['citations']): PaperRecord['references'] {
+  return (papers ?? [])
+    .filter((paper) => paper.paperId && paper.title)
+    .slice(0, MAX_GRAPH_REFS)
+    .map((paper) => ({
+      paperId: paper.paperId,
+      title: paper.title,
+      arxivId: paper.externalIds?.ArXiv,
+      year: paper.year,
+      citationCount: paper.citationCount,
+    }));
+}

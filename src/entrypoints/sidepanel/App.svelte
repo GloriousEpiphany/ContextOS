@@ -30,7 +30,7 @@
   }
 
   // ── State ──
-  let tab = $state<'dashboard' | 'knowledge' | 'graph' | 'workflows' | 'mcp' | 'settings'>('dashboard');
+  let tab = $state<'dashboard' | 'knowledge' | 'graph' | 'workflows' | 'mcp' | 'settings'>('knowledge');
   let nodes = $state<KnowledgeNode[]>([]);
   let selectedNode = $state<KnowledgeNode | null>(null);
   let graphSelectedNode = $state<KnowledgeNode | null>(null);
@@ -411,8 +411,7 @@
       <span class="sp-brand-name">ContextPrompt AI</span>
     </div>
     <div class="sp-stats-mini">
-      <span class="sp-stat-chip">{stats.nodes} {t('nodes', 'nodes')}</span>
-      <span class="sp-stat-chip">{stats.relations} {t('links', 'links')}</span>
+      <span class="sp-stat-chip">{nodes.length} {t('pages', 'pages')}</span>
     </div>
   </header>
 
@@ -621,8 +620,20 @@
       {:else}
         <!-- Node List View (full width) -->
         <div class="sp-list">
-          <div class="sp-list-info">
-            <span>{displayedNodes.length} {displayedNodes.length === 1 ? 'node' : 'nodes'}</span>
+          <div class="sp-list-toolbar">
+            <button class="sp-capture-btn" onclick={addCurrentPage} disabled={loading}>
+              {#if loading}
+                <span class="sp-mini-spinner"></span>
+              {:else}
+                <svg width="14" height="14" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="9" cy="9" r="7"/>
+                  <circle cx="9" cy="9" r="3"/>
+                  <circle cx="9" cy="9" r="0.5" fill="currentColor"/>
+                </svg>
+              {/if}
+              {t('capturePage', 'Capture Current Page')}
+            </button>
+            <span class="sp-list-count">{displayedNodes.length}</span>
           </div>
           <div class="sp-nodes">
             {#if displayedNodes.length === 0}
@@ -637,7 +648,7 @@
                     <line x1="10" y1="20" x2="18" y2="20" stroke="var(--cp-slate-200)" stroke-width="1.2" stroke-linecap="round"/>
                   </svg>
                   <p>{t('noKnowledgeNodes', 'No knowledge nodes yet')}</p>
-                  <p class="sp-empty-sub">{t('addPages', 'Add pages to get started')}</p>
+                  <p class="sp-empty-sub">{t('addPages', 'Visit a page and click Capture to get started')}</p>
                 {/if}
               </div>
             {:else}
@@ -680,7 +691,7 @@
               <button class="sp-btn sp-btn-danger" onclick={async () => { if (confirm(t('confirmDelete', 'Delete this node?'))) { await deleteNode(graphSelectedNode!); graphSelectedNode = null; } }}>
                 {t('delete', 'Delete')}
               </button>
-              <button class="sp-graph-actions-close" onclick={() => (graphSelectedNode = null)}>
+              <button class="sp-graph-actions-close" aria-label={t('close', 'Close')} title={t('close', 'Close')} onclick={() => (graphSelectedNode = null)}>
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
                   <line x1="3" y1="3" x2="9" y2="9"/><line x1="9" y1="3" x2="3" y2="9"/>
                 </svg>
@@ -804,6 +815,11 @@
           <!-- MCP Client: External Servers -->
           <div class="sp-setting-row" style="flex-direction:column;align-items:stretch;gap:8px;">
             <span class="sp-setting-label">{t('mcpExternalServers', 'External MCP Servers')}</span>
+            <div class="sp-privacy-warning">
+              <strong>Notion MCP:</strong> Official Notion MCP uses OAuth + PKCE at
+              <code>https://mcp.notion.com/mcp</code>. Direct in-extension OAuth is not enabled yet;
+              use Claude Desktop / Cursor / ChatGPT Connectors for Notion, or add a local bridge URL here.
+            </div>
             {#if settings.mcpServers?.length > 0}
               {#each settings.mcpServers as server, i}
                 <div class="sp-mcp-server-row">
@@ -816,7 +832,7 @@
                     const res = await sendMessage('mcpClientTestConnection', { url: server.url });
                     showNotification(res.success ? `Connected — ${res.toolCount} tools` : `Failed: ${res.error}`, res.success ? 'success' : 'error');
                   }}>Test</button>
-                  <button class="sp-mcp-server-del" onclick={() => {
+                  <button class="sp-mcp-server-del" aria-label="Remove MCP server" title="Remove MCP server" onclick={() => {
                     settings.mcpServers = settings.mcpServers.filter((_: any, idx: number) => idx !== i);
                     saveSettingsAction();
                   }}>
@@ -837,6 +853,14 @@
                 saveSettingsAction();
               }}>Add</button>
             </div>
+            <button class="sp-btn sp-btn-sm" style="align-self:flex-start;" onclick={() => {
+              settings.mcpServers = [...(settings.mcpServers || []), {
+                name: 'notion',
+                url: 'https://mcp.notion.com/mcp',
+                enabled: false,
+              }];
+              saveSettingsAction();
+            }}>Add Notion MCP URL (OAuth required)</button>
           </div>
         </section>
 
@@ -1134,13 +1158,20 @@
     background: var(--bg);
   }
 
-  .sp-list-info {
-    padding: 6px 12px;
-    font-size: 11px;
-    color: var(--cp-slate-400, #94a3b8);
-    font-weight: 500;
-    border-bottom: 1px solid var(--surface);
-    flex-shrink: 0;
+  .sp-list-toolbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 12px; border-bottom: 1px solid var(--surface); flex-shrink: 0;
+  }
+  .sp-capture-btn {
+    display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px;
+    background: var(--accent); color: white; border: none; border-radius: 8px;
+    font-size: 12px; font-weight: 600; cursor: pointer; transition: all 150ms;
+    font-family: inherit;
+  }
+  .sp-capture-btn:hover:not(:disabled) { background: var(--accent-strong); }
+  .sp-capture-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .sp-list-count {
+    font-size: 11px; color: var(--cp-slate-400, #94a3b8); font-weight: 500;
   }
 
   .sp-nodes {
@@ -1191,6 +1222,7 @@
     margin: 3px 0;
     line-height: 1.4;
     display: -webkit-box;
+    line-clamp: 2;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
@@ -1386,12 +1418,12 @@
     background: var(--accent);
     color: white;
     border-color: transparent;
-    box-shadow: 0 2px 6px rgba(13, 148, 136, 0.2);
+    box-shadow: 0 2px 6px rgba(194, 65, 12, 0.2);
   }
   .sp-btn-primary:hover {
     background: var(--accent-strong);
     border-color: transparent;
-    box-shadow: 0 3px 10px rgba(13, 148, 136, 0.3);
+    box-shadow: 0 3px 10px rgba(194, 65, 12, 0.3);
   }
   .sp-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 

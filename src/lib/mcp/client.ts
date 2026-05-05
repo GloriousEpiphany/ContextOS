@@ -29,6 +29,11 @@ export class MCPClient {
    * Connect to the MCP server and retrieve available tools.
    */
   async connect(): Promise<void> {
+    const known = diagnoseKnownRemoteMcp(this.serverUrl);
+    if (known.oauthRequired) {
+      throw new Error(known.message);
+    }
+
     // Send initialize request
     await this.sendRequest(MCP_METHODS.INITIALIZE, {
       protocolVersion: '2025-03-26',
@@ -116,4 +121,16 @@ export class MCPClient {
 
     return json.result;
   }
+}
+
+export function diagnoseKnownRemoteMcp(serverUrl: string): { oauthRequired: boolean; message: string } {
+  const normalized = serverUrl.replace(/\/+$/, '');
+  if (normalized === 'https://mcp.notion.com/mcp' || normalized === 'https://mcp.notion.com/sse') {
+    return {
+      oauthRequired: true,
+      message:
+        'Notion MCP requires OAuth 2.0 with PKCE. ContextOS can document and export this connector, but direct in-extension Notion OAuth is not enabled yet. Connect Notion through Claude Desktop/Cursor/ChatGPT Connectors using https://mcp.notion.com/mcp, or use a local mcp-remote bridge.',
+    };
+  }
+  return { oauthRequired: false, message: '' };
 }

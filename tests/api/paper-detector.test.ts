@@ -89,6 +89,14 @@ describe('arXiv detector', () => {
     const meta = extractArxivMeta(doc, 'https://arxiv.org/abs/2401.12345');
     expect(meta!.pdfUrl).toBe('https://arxiv.org/pdf/2401.12345');
   });
+
+  it('extractArxivMeta captures arXiv PDF pages after URL-only fallback', () => {
+    const doc = makeDoc(`<html><body></body></html>`);
+    const meta = extractArxivMeta(doc, 'https://arxiv.org/pdf/2401.12345v2');
+    expect(meta).not.toBeNull();
+    expect(meta!.title).toBe('arXiv:2401.12345');
+    expect(meta!.pdfUrl).toBe('https://arxiv.org/pdf/2401.12345');
+  });
 });
 
 // ── OpenReview ──
@@ -178,6 +186,18 @@ describe('OpenReview detector', () => {
     const meta = extractOpenReviewMeta(doc, 'https://openreview.net/forum?id=scored');
     expect(meta!.score).toBe(6.5); // average of 7 and 6
     expect(meta!.confidence).toBe(4.5); // average of 4 and 5
+  });
+
+  it('extractOpenReviewMeta extracts visible meta-review text', () => {
+    const doc = makeDoc(`
+      <html><body>
+        <h2 class="citation_title">Scored Paper</h2>
+        <div class="forum-authors"><a>A</a></div>
+        <div><strong>Meta Review:</strong> The paper is accepted because the ablation study is complete and the limitations are clear.</div>
+      </body></html>
+    `);
+    const meta = extractOpenReviewMeta(doc, 'https://openreview.net/forum?id=meta');
+    expect(meta!.metaReview).toContain('ablation study');
   });
 
   it('extractOpenReviewMeta handles missing scores gracefully', () => {

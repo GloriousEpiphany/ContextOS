@@ -53,6 +53,12 @@ const FIXTURE_S2_PAPER: S2Paper = {
     { authorId: 'auth2', name: 'Bob Builder' },
   ],
   openAccessPdf: { url: 'https://arxiv.org/pdf/2403.05525' },
+  references: [
+    { paperId: 'ref1', title: 'Reference Paper', year: 2020, citationCount: 100, externalIds: { ArXiv: '2001.00001' } },
+  ],
+  citations: [
+    { paperId: 'cite1', title: 'Citing Paper', year: 2025, citationCount: 3, externalIds: { ArXiv: '2501.00001' } },
+  ],
 };
 
 const FIXTURE_S2_AUTHOR = {
@@ -164,6 +170,9 @@ describe('SemanticScholarClient', () => {
     expect(enriched!.citedBy).toBe(42);
     expect(enriched!.firstAuthorHIndex).toBe(25);
     expect(enriched!.publishedAt).toBe('2024');
+    expect(enriched!.references?.[0]).toMatchObject({ paperId: 'ref1', arxivId: '2001.00001' });
+    expect(enriched!.citations?.[0]).toMatchObject({ paperId: 'cite1', arxivId: '2501.00001' });
+    expect(enriched!.pdfUrl).toBe('https://arxiv.org/pdf/2403.05525');
   });
 
   it('enrichPaper returns null when paper not found', async () => {

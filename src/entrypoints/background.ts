@@ -356,7 +356,7 @@ export default defineBackground(() => {
           const { contextOrchestrator } = await import('../lib/context/orchestrator');
           const pkg = await contextOrchestrator.assembleContext(
             data.query || '',
-            { model: data.model || 'gpt-4o', currentPage: data.currentPage || null },
+            { model: data.model || 'gpt-4o', currentPage: data.currentPage || null, topK: data.topK || 5 },
           );
           return { success: true, ...pkg };
         }
@@ -384,6 +384,7 @@ export default defineBackground(() => {
         case 'storePaper': return await storePaper(data);
         case 'fetchSemanticScholar': return await fetchSemanticScholar(data);
         case 'wipeAllChats': return await wipeAllChats();
+        case 'storeChatConversation': return await storeChatConversation(data, _sender);
         case 'injectPaperContext': return await injectPaperContext(data);
         case 'checkPdfAvailability': return await checkPdfAvailability(data);
         case 'linkPaperRepo': return await linkPaperRepo(data);
@@ -455,11 +456,18 @@ export default defineBackground(() => {
         notes: contextData.notes || '',
         tags: contextData.tags || [],
         aiSummary: '',
+        // Paper metadata (if detected by capture content script)
+        paperMeta: contextData.paperMeta || null,
       };
       contexts.unshift(newContext);
       if (contexts.length > MAX_CONTEXTS) contexts.pop();
       await setStorageData('contexts', contexts);
       await updateBadge();
+
+      // If this is a paper page, store in papers table and enrich
+      if (newContext.paperMeta) {
+        storePaperFromCapture(newContext).catch(() => {});
+      }
 
       // Auto AI summarization (non-blocking)
       autoSummarizeContext(newContext.id).catch(() => {});
@@ -470,6 +478,49 @@ export default defineBackground(() => {
       return { success: true, context: newContext };
     } catch (error) {
       return { success: false, error: (error as Error).message };
+    }
+  }
+
+  /** Store paper metadata from a capture and trigger Semantic Scholar enrichment. */
+  async function storePaperFromCapture(context: any) {
+    const pm = context.paperMeta;
+    if (!pm) return;
+
+    try {
+      const { upsertPaperAndKnowledge } = await import('../lib/storage/papers');
+      await upsertPaperAndKnowledge({
+        id: pm.id,
+        source: pm.source,
+        arxivId: pm.arxivId,
+        title: pm.title,
+        authors: pm.authors,
+        abstract: pm.abstract,
+        pdfUrl: pm.pdfUrl,
+        reviewSummary: pm.score !== undefined || pm.confidence !== undefined || pm.metaReview
+          ? { mean: pm.score, confidence: pm.confidence, meta: pm.metaReview }
+          : undefined,
+        capturedAt: Date.now(),
+      });
+
+      // Trigger Semantic Scholar enrichment and update context with results
+      if (pm.arxivId) {
+        const enriched = await fetchSemanticScholar({ arxivId: pm.arxivId });
+        if (enriched?.success && enriched.data) {
+          // Update the context's paperMeta with enrichment data
+          const contexts = (await getStorageData('contexts')) || [];
+          const idx = contexts.findIndex((c: any) => c.id === context.id);
+          if (idx !== -1) {
+            contexts[idx].paperMeta = {
+              ...contexts[idx].paperMeta,
+              citedBy: enriched.data.citedBy,
+              firstAuthorHIndex: enriched.data.firstAuthorHIndex,
+            };
+            await setStorageData('contexts', contexts);
+          }
+        }
+      }
+    } catch {
+      // Non-fatal
     }
   }
 
@@ -1338,6 +1389,18 @@ export default defineBackground(() => {
         getStats: async () => {
           return kg.getStats();
         },
+        searchPapers: async (query, limit) => {
+          const { searchPapers } = await import('../lib/storage/papers');
+          return searchPapers(query, limit);
+        },
+        getPaperContext: async (paperId) => {
+          const { buildPaperContext } = await import('../lib/storage/papers');
+          return buildPaperContext(paperId);
+        },
+        listRecentPapers: async (limit) => {
+          const { listRecentPapers } = await import('../lib/storage/papers');
+          return listRecentPapers(limit);
+        },
         screenshotActiveTab,
         extractImagesFromTab,
         capturePageWithImages,
@@ -1370,29 +1433,27 @@ export default defineBackground(() => {
 
   async function storePaper(data: any) {
     try {
-      const { db } = await import('../lib/storage/db');
-      const existing = await db.papers.get(data.id);
-      if (existing) {
-        // Merge: update enrichment fields but keep existing data
-        await db.papers.update(data.id, {
-          ...data,
-          firstAuthorHIndex: data.firstAuthorHIndex ?? existing.firstAuthorHIndex,
-          citedBy: data.citedBy ?? existing.citedBy,
-        });
-      } else {
-        await db.papers.put({
-          id: data.id,
-          source: data.source,
-          arxivId: data.arxivId,
-          doi: data.doi,
-          title: data.title,
-          authors: data.authors || [],
-          abstract: data.abstract,
-          publishedAt: data.publishedAt,
-          capturedAt: data.capturedAt || Date.now(),
-        });
-      }
-      return { success: true };
+      const { upsertPaperAndKnowledge } = await import('../lib/storage/papers');
+      const paper = await upsertPaperAndKnowledge({
+        id: data.id,
+        source: data.source,
+        arxivId: data.arxivId,
+        doi: data.doi,
+        title: data.title,
+        authors: data.authors || [],
+        abstract: data.abstract,
+        pdfUrl: data.pdfUrl,
+        publishedAt: data.publishedAt,
+        firstAuthorHIndex: data.firstAuthorHIndex,
+        citedBy: data.citedBy,
+        references: data.references,
+        citations: data.citations,
+        reviewSummary: data.score !== undefined || data.confidence !== undefined || data.metaReview
+          ? { mean: data.score, confidence: data.confidence, meta: data.metaReview }
+          : data.reviewSummary,
+        capturedAt: data.capturedAt || Date.now(),
+      });
+      return { success: true, paper };
     } catch (error) {
       return { success: false, error: (error as Error).message };
     }
@@ -1408,9 +1469,14 @@ export default defineBackground(() => {
       const { db } = await import('../lib/storage/db');
       const existing = await db.papers.get(`arxiv:${data.arxivId}`);
       if (existing) {
-        await db.papers.update(`arxiv:${data.arxivId}`, {
+        const { upsertPaperAndKnowledge } = await import('../lib/storage/papers');
+        await upsertPaperAndKnowledge({
+          ...existing,
           firstAuthorHIndex: enriched.firstAuthorHIndex,
           citedBy: enriched.citedBy,
+          references: enriched.references,
+          citations: enriched.citations,
+          pdfUrl: enriched.pdfUrl ?? existing.pdfUrl,
         });
       }
 
@@ -1430,17 +1496,96 @@ export default defineBackground(() => {
     }
   }
 
-  async function injectPaperContext(data: { arxivId: string }) {
+  async function storeChatConversation(data: {
+    source: 'chatgpt' | 'claude' | 'qwen';
+    conversationId: string;
+    url?: string;
+    title?: string;
+    messages: Array<{ role: 'user' | 'assistant'; text: string }>;
+    capturedAt?: number;
+  }, sender: chrome.runtime.MessageSender) {
     try {
       const { db } = await import('../lib/storage/db');
-      const paper = await db.papers.get(`arxiv:${data.arxivId}`);
-      if (!paper) return { success: false, error: 'Paper not found' };
+      const { redactPII } = await import('../lib/storage/redact');
+      const { extractArxivIds } = await import('../lib/api/github-repo');
+      const { knowledgeGraph } = await import('../lib/storage/knowledge-graph');
 
-      // Build a context package for injection into ChatGPT/Claude
-      const prompt = `I'm reading the paper "${paper.title}" (arXiv:${paper.arxivId}).\n\n` +
-        `Authors: ${paper.authors.join(', ')}\n` +
-        (paper.abstract ? `\nAbstract: ${paper.abstract}\n` : '') +
-        `\nPlease help me understand this paper. What are the key contributions and findings?`;
+      const messages = (data.messages || [])
+        .map((message) => {
+          const redacted = redactPII(message.text || '');
+          return {
+            role: message.role,
+            text: redacted.text,
+            redaction: redacted.stats,
+            ts: data.capturedAt || Date.now(),
+          };
+        })
+        .filter((message) => message.text.trim().length > 0);
+
+      if (messages.length === 0) return { success: false, error: 'No chat messages' };
+
+      const combinedText = messages.map((message) => message.text).join('\n\n');
+      const arxivIds = extractArxivIds(combinedText);
+      const paperRefs = arxivIds.map((id) => `arxiv:${id}`);
+      const id = `${data.source}:${data.conversationId}`;
+      const capturedAt = data.capturedAt || Date.now();
+
+      await db.chats.put({
+        id,
+        source: data.source,
+        conversationId: data.conversationId,
+        tabId: sender.tab?.id ?? -1,
+        messages,
+        paperRefs,
+        capturedAt,
+        lastUsedAt: capturedAt,
+      });
+
+      const existingNode = await db.knowledgeNodes.where('contextId').equals(`chat:${id}`).first();
+      const title = data.title || `${data.source} discussion`;
+      const summary = combinedText.slice(0, 800);
+      if (existingNode?.id) {
+        await db.knowledgeNodes.update(existingNode.id, {
+          title,
+          summary,
+          content: combinedText,
+          updatedAt: new Date(capturedAt).toISOString(),
+          lastAccessedAt: new Date(capturedAt).toISOString(),
+          tags: Array.from(new Set([...(existingNode.tags || []), 'ai-chat', data.source, ...paperRefs])),
+        });
+      } else {
+        await knowledgeGraph.addFromContext({
+          id: `chat:${id}`,
+          timestamp: new Date(capturedAt).toISOString(),
+          title,
+          url: data.url || sender.tab?.url || '',
+          selection: '',
+          description: summary,
+          ogData: {},
+          structuredData: {},
+          mainContent: combinedText,
+          chatContent: combinedText,
+          isPrivateLink: false,
+          platformName: data.source,
+          captureDepth: 'deep',
+          notes: '',
+          tags: ['ai-chat', data.source, ...paperRefs],
+          aiSummary: '',
+        });
+      }
+
+      return { success: true, chatId: id, messageCount: messages.length, paperRefs };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  }
+
+  async function injectPaperContext(data: { arxivId: string }) {
+    try {
+      const { buildPaperContext } = await import('../lib/storage/papers');
+      const context = await buildPaperContext(`arxiv:${data.arxivId}`);
+      if (!context) return { success: false, error: 'Paper not found' };
+      const prompt = `${context.prompt}\n\nPlease help me understand this paper. What are the key contributions, evidence, limitations, and follow-up experiments?`;
 
       // Copy to clipboard
       await navigator.clipboard.writeText(prompt).catch(() => {});
@@ -1474,26 +1619,20 @@ export default defineBackground(() => {
     source: string;
     capturedAt: number;
   }): Promise<{ linked: number }> {
-    const { db } = await import('../lib/storage/db');
+    const { linkPaperRepo: addPaperRepoEdge } = await import('../lib/storage/papers');
     let linked = 0;
 
     for (const arxivId of data.arxivIds) {
       const paperId = `arxiv:${arxivId}`;
       try {
-        // Check if edge already exists
-        const existing = await db.paperRepoEdges
-          .where('[paperId+repoFullName]')
-          .equals([paperId, data.repoFullName])
-          .count();
-
-        if (existing === 0) {
-          await db.paperRepoEdges.add({
-            paperId,
-            repoFullName: data.repoFullName,
-            source: data.source,
-            confidence: 0.8, // README arXiv ID is a strong signal
-            createdAt: data.capturedAt,
-          });
+        const inserted = await addPaperRepoEdge(
+          paperId,
+          data.repoFullName,
+          data.source === 'paper_to_code' || data.source === 'manual' ? data.source : 'readme_arxiv_id',
+          0.8,
+          data.capturedAt,
+        );
+        if (inserted) {
           linked++;
         }
       } catch {
@@ -1522,7 +1661,7 @@ export default defineBackground(() => {
       const contexts = (await getStorageData('contexts')) || [];
       const count = contexts.length;
       chrome.action.setBadgeText({ text: count > 0 ? String(count) : '' });
-      chrome.action.setBadgeBackgroundColor({ color: '#0D9488' });
+      chrome.action.setBadgeBackgroundColor({ color: '#C2410C' });
     } catch { /* ignore */ }
   }
 

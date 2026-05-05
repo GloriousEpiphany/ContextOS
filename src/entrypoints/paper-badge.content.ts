@@ -32,11 +32,6 @@ export default defineContentScript({
     const meta = detectPaper(window.location.href, document);
     if (!meta) return;
 
-    // Store paper metadata in IndexedDB (for KG integration)
-    await storePaper(meta).catch(() => {
-      // Non-fatal: badge still shows even if storage fails
-    });
-
     // Fetch enrichment from Semantic Scholar (background, don't block badge)
     const enrichment = await fetchEnrichment(meta).catch(() => null);
 
@@ -44,27 +39,6 @@ export default defineContentScript({
     showBadge(meta, enrichment);
   },
 });
-
-// ── Store paper in Dexie via background script ──
-
-async function storePaper(meta: PaperMeta): Promise<void> {
-  try {
-    await chrome.runtime.sendMessage({
-      action: 'storePaper',
-      data: {
-        id: meta.id,
-        source: meta.source,
-        arxivId: meta.arxivId,
-        title: meta.title,
-        authors: meta.authors,
-        abstract: meta.abstract,
-        capturedAt: Date.now(),
-      },
-    });
-  } catch {
-    // Background script may not be ready yet — non-fatal
-  }
-}
 
 // ── Fetch Semantic Scholar enrichment ──
 
@@ -122,10 +96,12 @@ async function showBadge(meta: PaperMeta, enrichment: Enrichment | null): Promis
     pdfUrl,
     score: meta.score,
     confidence: meta.confidence,
+    metaReview: meta.metaReview,
   });
 
   document.body.appendChild(badgeHost);
 }
+
 
 async function checkPdfAvailability(url: string): Promise<boolean> {
   try {

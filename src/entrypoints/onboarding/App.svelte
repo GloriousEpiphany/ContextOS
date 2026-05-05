@@ -524,7 +524,7 @@
 
   .btn-primary:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+    box-shadow: 0 4px 12px rgba(194, 65, 12, 0.3);
   }
 
   .btn-secondary {

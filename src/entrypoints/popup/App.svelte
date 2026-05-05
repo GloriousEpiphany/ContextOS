@@ -12,7 +12,7 @@
   let history = $state<any[]>([]);
   let loading = $state(false);
   let notification = $state<{ text: string; type: string } | null>(null);
-  let stats = $state<{ nodes: number; relations: number; tags: number }>({ nodes: 0, relations: 0, tags: 0 });
+  let stats = $state<{ papers: number; pages: number; summaries: number }>({ papers: 0, pages: 0, summaries: 0 });
   let aiStatus = $state<{ enabled: boolean; engine: string }>({ enabled: false, engine: 'Off' });
   let summarizingId = $state<string | null>(null);
 
@@ -313,20 +313,19 @@
 
   async function loadStats() {
     try {
-      const result = await sendMessage('getKnowledgeStats');
-      if (result) {
-        const data = result?.stats || result;
-        stats = {
-          nodes: data?.nodeCount || data?.totalNodes || 0,
-          relations: data?.relationCount || data?.totalRelations || 0,
-          tags: data?.embeddingCount || data?.uniqueTags || 0,
-        };
-      }
+      const paperCount = contexts.filter((c) => c.paperMeta).length;
+      const summaryCount = contexts.filter((c) => c.aiSummary).length;
+      stats = {
+        papers: paperCount,
+        pages: contexts.length,
+        summaries: summaryCount,
+      };
     } catch { /* ignore */ }
   }
 
   onMount(async () => {
-    await Promise.all([loadContexts(), loadTemplates(), loadSettings(), loadStats()]);
+    await Promise.all([loadContexts(), loadTemplates(), loadSettings()]);
+    await loadStats();
     await loadLocale(settings.language);
     applyTheme();
     // Listen for system theme changes
@@ -437,23 +436,18 @@
     <!-- Stats Strip -->
     <div class="stats-strip">
       <div class="stat-item">
-        <span class="stat-value">{stats.nodes}</span>
-        <span class="stat-label">Nodes</span>
+        <span class="stat-value">{stats.papers}</span>
+        <span class="stat-label">{t('papers', 'Papers')}</span>
       </div>
       <div class="stat-divider"></div>
       <div class="stat-item">
-        <span class="stat-value">{stats.relations}</span>
-        <span class="stat-label">Relations</span>
+        <span class="stat-value">{stats.pages}</span>
+        <span class="stat-label">{t('pages', 'Pages')}</span>
       </div>
       <div class="stat-divider"></div>
       <div class="stat-item">
-        <span class="stat-value">{stats.tags}</span>
-        <span class="stat-label">Tags</span>
-      </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <span class="stat-value">{contexts.length}</span>
-        <span class="stat-label">{t('contexts', 'Contexts')}</span>
+        <span class="stat-value">{stats.summaries}</span>
+        <span class="stat-label">{t('summaries', 'Summaries')}</span>
       </div>
       <div class="stat-divider"></div>
       <div class="stat-item">
@@ -520,7 +514,7 @@
         </div>
       {:else}
         {#each filteredContexts as ctx}
-          <div class="context-card" class:card-selected={multiSelectMode && selectedContextIds.has(ctx.id)}>
+          <div class="context-card" class:card-paper={!!ctx.paperMeta} class:card-selected={multiSelectMode && selectedContextIds.has(ctx.id)}>
             {#if multiSelectMode}
               <label class="card-checkbox">
                 <input type="checkbox" checked={selectedContextIds.has(ctx.id)} onchange={() => toggleContextSelection(ctx.id)} />
@@ -540,21 +534,56 @@
                 </div>
                 <div class="card-meta">
                   <span class="card-time">{formatTime(ctx.timestamp)}</span>
-                  {#if ctx.platformName}
+                  {#if ctx.paperMeta}
+                    <span class="card-paper-badge">
+                      {#if ctx.paperMeta.source === 'arxiv'}arXiv{:else if ctx.paperMeta.source === 'openreview'}OpenReview{:else if ctx.paperMeta.source === 'cvpr'}CVPR{:else}{ctx.paperMeta.source}{/if}
+                    </span>
+                    {#if ctx.paperMeta.arxivId}
+                      <span class="card-arxiv-id">{ctx.paperMeta.arxivId}</span>
+                    {/if}
+                  {:else if ctx.platformName}
                     <span class="card-platform">{ctx.platformName}</span>
                   {/if}
                 </div>
               </div>
-              {#if ctx.tags?.length > 0}
-                <div class="card-tags">
-                  {#each ctx.tags.slice(0, 5) as tag}
-                    <span class="tag">{tag}</span>
-                  {/each}
-                  {#if ctx.tags.length > 5}
-                    <span class="tag tag-more">+{ctx.tags.length - 5}</span>
-                  {/if}
-                </div>
+
+              <!-- Paper-specific: Authors & Abstract -->
+              {#if ctx.paperMeta}
+                {#if ctx.paperMeta.authors?.length > 0}
+                  <p class="card-authors">{ctx.paperMeta.authors.slice(0, 3).join(', ')}{ctx.paperMeta.authors.length > 3 ? ` +${ctx.paperMeta.authors.length - 3}` : ''}</p>
+                {/if}
+                {#if ctx.paperMeta.abstract}
+                  <p class="card-abstract">{ctx.paperMeta.abstract.slice(0, 180)}{ctx.paperMeta.abstract.length > 180 ? '...' : ''}</p>
+                {/if}
+                {#if ctx.paperMeta.citedBy !== undefined || ctx.paperMeta.firstAuthorHIndex !== undefined}
+                  <div class="card-enrichment">
+                    {#if ctx.paperMeta.citedBy !== undefined}
+                      <span class="enrichment-item">
+                        <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2 12V3a1 1 0 011-1h5l4 4v6a1 1 0 01-1 1H3a1 1 0 01-1-1z"/><path d="M8 2v4h4"/></svg>
+                        {ctx.paperMeta.citedBy} citations
+                      </span>
+                    {/if}
+                    {#if ctx.paperMeta.firstAuthorHIndex !== undefined}
+                      <span class="enrichment-item">
+                        <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M7 1v12M1 7h12"/></svg>
+                        h-index: {ctx.paperMeta.firstAuthorHIndex}
+                      </span>
+                    {/if}
+                  </div>
+                {/if}
+              {:else}
+                {#if ctx.tags?.length > 0}
+                  <div class="card-tags">
+                    {#each ctx.tags.slice(0, 5) as tag}
+                      <span class="tag">{tag}</span>
+                    {/each}
+                    {#if ctx.tags.length > 5}
+                      <span class="tag tag-more">+{ctx.tags.length - 5}</span>
+                    {/if}
+                  </div>
+                {/if}
               {/if}
+
               <p class="card-desc">{ctx.aiSummary || ctx.description || ctx.selection || '—'}</p>
               <div class="card-actions">
                 {#if ctx.aiSummary}
@@ -562,6 +591,7 @@
                 {/if}
                 <button
                   class="card-ai-btn"
+                  class:card-ai-btn-primary={!!ctx.paperMeta && !ctx.aiSummary}
                   onclick={(e: MouseEvent) => { e.stopPropagation(); summarizeCard(ctx.id); }}
                   disabled={summarizingId === ctx.id}
                   title={ctx.aiSummary ? t('aiSummarize', 'Re-generate AI Summary') : t('aiSummarize', 'Generate AI Summary')}
@@ -574,9 +604,9 @@
                       <circle cx="7" cy="7" r="3"/>
                     </svg>
                   {/if}
-                  {t('aiSummarize', 'AI Summary')}
+                  {ctx.paperMeta ? t('summarizePaper', 'Summarize Paper') : t('aiSummarize', 'AI Summary')}
                 </button>
-                <!-- Phase 5: Quality Analysis -->
+                <!-- Quality Analysis (secondary) -->
                 <button
                   class="card-ai-btn"
                   onclick={(e: MouseEvent) => { e.stopPropagation(); analyzeQuality(ctx.id); }}
@@ -605,7 +635,7 @@
       <div class="quality-panel">
         <div class="quality-header">
           <h4>{t('quality', 'Quality Analysis')}</h4>
-          <button class="close-btn" onclick={() => (qualityAnalysis = null)}>
+          <button class="close-btn" aria-label={t('close', 'Close')} title={t('close', 'Close')} onclick={() => (qualityAnalysis = null)}>
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
               <line x1="3" y1="3" x2="9" y2="9"/><line x1="9" y1="3" x2="3" y2="9"/>
             </svg>
@@ -653,7 +683,7 @@
       <div class="fuse-result">
         <div class="quality-header">
           <h4>{t('fuse', 'Fuse Result')}</h4>
-          <button class="close-btn" onclick={() => { fuseResult = null; }}>
+          <button class="close-btn" aria-label={t('close', 'Close')} title={t('close', 'Close')} onclick={() => { fuseResult = null; }}>
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
               <line x1="3" y1="3" x2="9" y2="9"/><line x1="9" y1="3" x2="3" y2="9"/>
             </svg>
@@ -1134,14 +1164,14 @@
     background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 50%, var(--accent-strong) 100%);
     color: white; border: none; border-radius: 12px; font-size: 14px; font-weight: 600;
     cursor: pointer; transition: all 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
-    box-shadow: 0 2px 8px rgba(13, 148, 136, 0.25); font-family: inherit;
+    box-shadow: 0 2px 8px rgba(194, 65, 12, 0.25); font-family: inherit;
     position: relative; overflow: hidden;
   }
   .capture-btn::before {
     content: ''; position: absolute; inset: 0;
     background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%); pointer-events: none;
   }
-  .capture-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(13, 148, 136, 0.35); }
+  .capture-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(194, 65, 12, 0.35); }
   .capture-btn:active:not(:disabled) { transform: translateY(0); }
   .capture-btn:disabled { opacity: 0.6; cursor: not-allowed; }
   .capture-btn kbd {
@@ -1183,7 +1213,7 @@
     transition: border-color 150ms, box-shadow 150ms; font-family: inherit; box-sizing: border-box;
     color: var(--cp-slate-800, #1e293b);
   }
-  .search-input:focus { border-color: var(--cp-teal-400, var(--accent)); box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.1); }
+  .search-input:focus { border-color: var(--cp-teal-400, var(--accent)); box-shadow: 0 0 0 3px rgba(194, 65, 12, 0.1); }
   .filter-actions { display: flex; gap: 4px; align-items: center; }
   .template-select {
     padding: 6px 8px; border: 1px solid var(--cp-slate-200, var(--border)); border-radius: 8px;
@@ -1211,6 +1241,7 @@
     border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; transition: all 200ms; cursor: default;
   }
   .context-card:hover { border-color: var(--cp-slate-200, var(--border)); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); }
+  .context-card.card-paper { border-left: 3px solid var(--accent); }
   .context-card.card-selected { border-color: var(--cp-teal-400, var(--accent)); background: var(--accent-soft); }
   .card-body { flex: 1; min-width: 0; }
 
@@ -1240,10 +1271,20 @@
 
   .card-meta { display: flex; gap: 8px; align-items: center; font-size: 11px; color: var(--cp-slate-400, #94a3b8); margin-top: 2px; }
   .card-platform { background: linear-gradient(135deg, var(--cp-teal-50), var(--cp-teal-100)); color: var(--cp-teal-700); padding: 0 6px; border-radius: 4px; font-size: 10px; font-weight: 500; }
+  .card-paper-badge {
+    background: var(--accent-soft); color: var(--accent-strong);
+    padding: 0 6px; border-radius: 4px; font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.3px;
+  }
+  .card-arxiv-id { font-size: 10px; color: var(--cp-slate-400, #94a3b8); font-family: var(--cp-font-mono, monospace); }
+  .card-authors { font-size: 11px; color: var(--cp-slate-500, #64748b); margin: 4px 0 2px; font-style: italic; line-height: 1.4; }
+  .card-abstract { font-size: 11.5px; color: var(--cp-slate-600, #475569); margin: 4px 0; line-height: 1.5; display: -webkit-box; line-clamp: 3; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .card-enrichment { display: flex; gap: 10px; margin: 4px 0; }
+  .enrichment-item { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; color: var(--cp-slate-400, #94a3b8); font-weight: 500; }
   .card-tags { display: flex; gap: 4px; margin-bottom: 6px; flex-wrap: wrap; }
   .tag { font-size: 10px; background: var(--surface); color: var(--cp-slate-600, #475569); padding: 1px 7px; border-radius: 4px; font-weight: 500; }
   .tag-more { color: var(--cp-slate-400, #94a3b8); background: transparent; padding-left: 2px; }
-  .card-desc { font-size: 12px; color: var(--cp-slate-500, #64748b); margin: 0; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .card-desc { font-size: 12px; color: var(--cp-slate-500, #64748b); margin: 0; line-height: 1.5; display: -webkit-box; line-clamp: 2; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
   /* ═══ Settings ═══ */
   .settings { padding: 10px 14px 14px; }
@@ -1355,7 +1396,7 @@
   .history-meta { display: flex; gap: 8px; align-items: center; margin-bottom: 4px; }
   .history-time { font-size: 11px; color: var(--cp-slate-400, #94a3b8); }
   .history-template { font-size: 10px; background: var(--surface); color: var(--cp-slate-500, #64748b); padding: 1px 6px; border-radius: 4px; }
-  .history-prompt { font-size: 12px; color: var(--cp-slate-500, #64748b); margin: 0; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .history-prompt { font-size: 12px; color: var(--cp-slate-500, #64748b); margin: 0; line-height: 1.5; display: -webkit-box; line-clamp: 3; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
   .fav-active { color: var(--cp-warning, #f59e0b) !important; }
 
   /* ═══ Quality Panel (Phase 5) ═══ */
@@ -1390,7 +1431,7 @@
     color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 600;
     cursor: pointer; transition: all 150ms; font-family: inherit;
   }
-  .fuse-btn:hover { box-shadow: 0 2px 8px rgba(13, 148, 136, 0.3); }
+  .fuse-btn:hover { box-shadow: 0 2px 8px rgba(194, 65, 12, 0.3); }
   .fuse-btn:disabled { opacity: 0.6; cursor: not-allowed; }
   .fuse-text { font-size: 12px; color: var(--cp-slate-600, #475569); margin: 0 0 8px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
 
@@ -1425,6 +1466,11 @@
     font-size: 11px; font-weight: 500; cursor: pointer; transition: all 150ms; font-family: inherit;
   }
   .card-ai-btn:hover:not(:disabled) { border-color: var(--cp-teal-300, var(--accent)); color: var(--cp-teal-600, var(--accent-strong)); background: var(--accent-soft); }
+  .card-ai-btn-primary {
+    background: var(--accent); color: white; border-color: var(--accent);
+    font-weight: 600;
+  }
+  .card-ai-btn-primary:hover:not(:disabled) { background: var(--accent-strong); color: white; border-color: var(--accent-strong); }
   .card-ai-btn:disabled { opacity: 0.6; cursor: not-allowed; }
   .mini-spinner { display: inline-block; width: 10px; height: 10px; border: 1.5px solid var(--cp-slate-200, var(--border)); border-top-color: var(--cp-teal-500, var(--accent)); border-radius: 50%; animation: spin 0.6s linear infinite; }
 </style>

@@ -1,9 +1,9 @@
 {
   "name": "com.contextprompt.ai",
   "description": "ContextPrompt AI Native Messaging Host for MCP protocol bridge",
-  "path": "PLACEHOLDER — run install.bat or install.sh to generate with absolute path",
+  "path": "D:\\Software Documents\\JetBrains\\PyCharm Professional 2025\\ContextPrompt_AI\\contextprompt-ai\\native-host\\run.bat",
   "type": "stdio",
   "allowed_origins": [
-    "chrome-extension://YOUR_EXTENSION_ID/"
+    "chrome-extension://cpgllgfpmojcgolbijhlnkikglmkmcag/"
   ]
 }

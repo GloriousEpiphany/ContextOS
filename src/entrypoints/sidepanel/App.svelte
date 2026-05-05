@@ -50,6 +50,7 @@
   let localeVersion = $state(0);
   let mcpNewName = $state('');
   let mcpNewUrl = $state('');
+  let mcpStatus = $state<any>(null);
   let featureFlags = $state<Record<FeatureFlagKey, FeatureFlag> | null>(null);
 
   // ── Computed ──
@@ -236,6 +237,12 @@
     } catch { /* ignore — feature flags unavailable in dev */ }
   }
 
+  async function loadMCPStatus() {
+    try {
+      mcpStatus = await sendMessage('getMCPStatus');
+    } catch { /* ignore */ }
+  }
+
   async function toggleFeatureFlag(key: FeatureFlagKey) {
     if (!featureFlags) return;
     const current = featureFlags[key]?.enabled ?? false;
@@ -251,7 +258,17 @@
     applyTheme(settings.theme);
     await loadLocale(settings.language);
     localeVersion++;
+    await loadMCPStatus();
     showNotification(t('save', 'Settings saved'));
+  }
+
+  async function restartMCPServerAction() {
+    const result = await sendMessage('mcpRestartServer');
+    await loadMCPStatus();
+    showNotification(
+      result?.success ? 'MCP bridge started' : `MCP bridge failed: ${result?.error || 'unknown error'}`,
+      result?.success ? 'success' : 'error',
+    );
   }
 
   async function aiSummarizeNode() {
@@ -360,7 +377,7 @@
   }
 
   onMount(async () => {
-    await Promise.all([loadNodes(), loadGraphData(), loadStats(), loadSettings(), loadFeatureFlags()]);
+    await Promise.all([loadNodes(), loadGraphData(), loadStats(), loadSettings(), loadFeatureFlags(), loadMCPStatus()]);
     await loadLocale(settings.language);
     // Load settings for theme
     if (settings?.theme) applyTheme(settings.theme);
@@ -810,6 +827,19 @@
             <div class="sp-setting-row sp-setting-field">
               <span class="sp-setting-label">{t('mcpPort', 'Port')}</span>
               <input class="sp-setting-input" type="number" bind:value={settings.mcpServerPort} onchange={saveSettingsAction} style="width:80px;" />
+            </div>
+            <div class="sp-mcp-bridge-status">
+              <div>
+                <span class="sp-mcp-bridge-label">Local MCP bridge</span>
+                <span class="sp-mcp-bridge-value" class:ok={mcpStatus?.server?.connected} class:error={!mcpStatus?.server?.connected}>
+                  {mcpStatus?.server?.connected ? 'Connected' : 'Not listening'}
+                </span>
+                <code>{mcpStatus?.server?.endpoint || `http://127.0.0.1:${settings.mcpServerPort || 19960}/mcp`}</code>
+                {#if mcpStatus?.server?.lastError}
+                  <span class="sp-mcp-bridge-error">{mcpStatus.server.lastError}</span>
+                {/if}
+              </div>
+              <button class="sp-btn sp-btn-sm" onclick={restartMCPServerAction}>Restart</button>
             </div>
           {/if}
           <!-- MCP Client: External Servers -->
@@ -1826,6 +1856,43 @@
   }
   .sp-btn-sm:hover { background: var(--cp-teal-600, var(--accent-strong)); }
   .sp-toggle-sm { transform: scale(0.85); }
+  .sp-mcp-bridge-status {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+  }
+  .sp-mcp-bridge-status > div {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .sp-mcp-bridge-label {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--cp-font-ui, inherit);
+  }
+  .sp-mcp-bridge-value {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--error);
+  }
+  .sp-mcp-bridge-value.ok { color: var(--success); }
+  .sp-mcp-bridge-status code {
+    font-size: 10.5px;
+    color: var(--muted);
+    word-break: break-all;
+  }
+  .sp-mcp-bridge-error {
+    font-size: 11px;
+    color: var(--error);
+    line-height: 1.35;
+  }
 
   /* Privacy Warning */
   .sp-privacy-warning {

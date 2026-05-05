@@ -10,8 +10,8 @@
  *   node index.js [--port=19960]
  */
 
-const http = require('http');
-const { Buffer } = require('buffer');
+import http from 'node:http';
+import { Buffer } from 'node:buffer';
 
 // ── Configuration ──
 const DEFAULT_PORT = 19960;
@@ -89,13 +89,19 @@ const server = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
+  if (req.method === 'GET' && req.url === '/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ status: 'ok', port }));
+    return;
+  }
+
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
     res.end();
     return;
   }
 
-  if (req.method !== 'POST') {
+  if (req.method !== 'POST' || (req.url !== '/' && req.url !== '/mcp')) {
     res.writeHead(405, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'Method not allowed' }));
     return;
@@ -128,14 +134,6 @@ const server = http.createServer(async (req, res) => {
       }));
     }
   });
-});
-
-// ── Health Check Endpoint ──
-server.on('request', (req, res) => {
-  if (req.method === 'GET' && req.url === '/health') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ status: 'ok', port }));
-  }
 });
 
 // ── Start ──

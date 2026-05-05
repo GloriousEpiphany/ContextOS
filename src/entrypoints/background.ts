@@ -375,6 +375,7 @@ export default defineBackground(() => {
         case 'mcpClientTestConnection': return await mcpClientTestConnection(data);
         case 'getMCPStatus': return await getMCPStatus();
         case 'mcpAutoConnect': return await mcpAutoConnect();
+        case 'mcpRestartServer': return await mcpRestartServer();
         case 'mcpScreenshot': return await screenshotActiveTab(data?.quality);
         case 'mcpExtractImages': return await extractImagesFromTab(data || {});
         case 'mcpCapturePageWithImages': return await capturePageWithImages(data || {});
@@ -1222,6 +1223,9 @@ export default defineBackground(() => {
         enabled: !!settings.mcpServerEnabled,
         port: settings.mcpServerPort || 19960,
         connected: !!_nativePort,
+        lastError: _nativeStatus.lastError,
+        lastEventAt: _nativeStatus.lastEventAt,
+        endpoint: `http://127.0.0.1:${settings.mcpServerPort || 19960}/mcp`,
         tools: MCP_TOOLS,
       },
       clients,
@@ -1248,6 +1252,24 @@ export default defineBackground(() => {
       });
     }
     return { success: true, results };
+  }
+
+  async function mcpRestartServer() {
+    const settings = await getSettings();
+    if (!settings.mcpServerEnabled) {
+      return { success: false, error: 'MCP Server is disabled in settings.' };
+    }
+    if (_nativePort) {
+      try { _nativePort.disconnect(); } catch { /* ignore */ }
+      _nativePort = null;
+    }
+    await setupNativeMessaging({ force: true });
+    return {
+      success: !!_nativePort,
+      connected: !!_nativePort,
+      error: _nativeStatus.lastError,
+      endpoint: `http://127.0.0.1:${settings.mcpServerPort || 19960}/mcp`,
+    };
   }
 
   // ==================== MCP Multimodal Helpers ====================
@@ -1318,16 +1340,22 @@ export default defineBackground(() => {
   // ==================== MCP Native Messaging ====================
 
   let _nativePort: chrome.runtime.Port | null = null;
+  let _nativeStatus: { lastError: string | null; lastEventAt: string | null } = {
+    lastError: null,
+    lastEventAt: null,
+  };
 
-  async function setupNativeMessaging() {
+  async function setupNativeMessaging(_options: { force?: boolean } = {}) {
     // Only connect if MCP Server is enabled in settings
     const settings = await getSettings();
     if (!settings.mcpServerEnabled) return;
 
     try {
+      _nativeStatus = { lastError: null, lastEventAt: new Date().toISOString() };
       _nativePort = chrome.runtime.connectNative('com.contextprompt.ai');
 
       _nativePort.onMessage.addListener(async (message: any) => {
+        _nativeStatus = { lastError: null, lastEventAt: new Date().toISOString() };
         if (message.type === 'mcp_request' && message.payload) {
           const response = await handleMCPRequest(message.payload);
           _nativePort?.postMessage({ ...response, _nativeId: message._nativeId });
@@ -1335,12 +1363,15 @@ export default defineBackground(() => {
       });
 
       _nativePort.onDisconnect.addListener(() => {
-        // Silence chrome.runtime.lastError to prevent unchecked error
-        const _err = chrome.runtime.lastError;
+        const err = chrome.runtime.lastError?.message || null;
+        _nativeStatus = { lastError: err, lastEventAt: new Date().toISOString() };
         _nativePort = null;
       });
-    } catch {
-      // Native messaging host not installed — that's OK
+    } catch (err) {
+      _nativeStatus = {
+        lastError: (err as Error).message || 'Failed to connect native messaging host',
+        lastEventAt: new Date().toISOString(),
+      };
       _nativePort = null;
     }
   }
